@@ -8,13 +8,5 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: FRONTEND_URL
-        sync: false
-
-  # Frontend Service (React/Vite)
-  - type: static
-    name: financial-control-frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    envVars:
-      - key: VITE_API_URL
-        sync: false
+        value: https://financial-control-frontend.onrender.com
+        # Update this after deploying the frontend
