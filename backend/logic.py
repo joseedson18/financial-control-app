@@ -119,7 +119,8 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem]) -> PnLResponse:
     # Initialize data structure for calculations
     # We'll use a dictionary to store values for each line number
     # line_values[line_num][month_str] = value
-    line_values = {i: {m: 0.0 for m in month_strs} for i in range(1, 100)}
+    # Initialize line values for all possible line numbers used in calculations (up to 120)
+line_values = {i: {m: 0.0 for m in month_strs} for i in range(1, 121)}
 
     # 1. Populate from Mappings (Raw Data)
     for m in mappings:
