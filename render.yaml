@@ -4,7 +4,7 @@ services:
     name: financial-control-backend
     runtime: docker
     rootDir: backend
-    plan: free
+    plan: starter
     dockerfilePath: ./Dockerfile
     envVars:
       - key: FRONTEND_URL
