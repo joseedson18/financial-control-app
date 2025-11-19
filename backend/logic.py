@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime
 import io
 from typing import List, Dict, Any
-from .models import MappingItem, PnLItem, PnLResponse, DashboardData
+from models import MappingItem, PnLItem, PnLResponse, DashboardData
 
 def process_upload(file_content: bytes) -> pd.DataFrame:
     """

@@ -2,8 +2,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import pandas as pd
-from .models import MappingItem, MappingUpdate, DashboardData, PnLResponse
-from .logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data
+from models import MappingItem, MappingUpdate, DashboardData, PnLResponse
+from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data
 
 import os
 
