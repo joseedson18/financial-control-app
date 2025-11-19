@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
-import { DollarSign, TrendingUp, Activity, Users, Percent } from 'lucide-react';
+import { DollarSign, TrendingUp, Activity, Percent } from 'lucide-react';
 
 interface DashboardData {
     kpis: {
@@ -155,9 +155,9 @@ const Dashboard: React.FC = () => {
                                     outerRadius={100}
                                     fill="#8884d8"
                                     dataKey="value"
-                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                                 >
-                                    {costPieData.map((entry, index) => (
+                                    {costPieData.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
