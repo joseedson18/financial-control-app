@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, FileText, Upload, Settings, Menu, X } from 'lucide-react';
+import { useState } from 'react';
+import { LayoutDashboard, FileText, Upload, Settings, Menu } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import PnLTable from './components/PnLTable';
 import FileUpload from './components/FileUpload';

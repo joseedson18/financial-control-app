@@ -48,7 +48,7 @@ const PnLTable: React.FC = () => {
         data.rows.forEach(row => {
             const rowData = [row.description];
             data.headers.forEach(header => {
-                rowData.push(row.values[header] || 0);
+                rowData.push(String(row.values[header] || 0));
             });
             wsData.push(rowData);
         });
