@@ -3,15 +3,12 @@ services:
   - type: web
     name: financial-control-backend
     runtime: docker
-    repo: https://github.com/render-examples/fastapi # Placeholder, user will use their own repo
     rootDir: backend
     plan: free
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: financial-control-frontend
-          property: url
+        sync: false
 
   # Frontend Service (React/Vite)
   - type: web
@@ -19,11 +16,8 @@ services:
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    staticPublish Path: ./dist
     plan: free
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: financial-control-backend
-          property: url
+        sync: false
