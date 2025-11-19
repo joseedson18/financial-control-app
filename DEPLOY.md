@@ -1,43 +1,51 @@
 # Deployment Guide for Financial Control App
 
-This guide explains how to deploy your application to **Render**, a cloud hosting platform that supports both our Python backend and React frontend.
+This guide explains how to deploy your application to **Render**.
 
 ## Prerequisites
-1.  A [GitHub](https://github.com/) account.
-2.  A [Render](https://render.com/) account.
+1. A [GitHub](https://github.com/) account.
+2. A [Render](https://render.com/) account.
 
-## Step 1: Push Code to GitHub
-If you haven't already, push this project to a new GitHub repository.
+## Step 1: Push Code to GitHub ✅
+**Already completed!** Your code is at: `https://github.com/joseedson18/financial-control-app`
 
-1.  Initialize git (if not done):
-    ```bash
-    git init
-    git add .
-    git commit -m "Initial commit"
-    ```
-2.  Create a new repository on GitHub.
-3.  Link and push:
-    ```bash
-    git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-    git branch -M main
-    git push -u origin main
-    ```
+## Step 2: Deploy Backend via Blueprint
 
-## Step 2: Deploy on Render
-We have included a `render.yaml` file that automates the configuration.
+1. On the Render Blueprint page, click **"Retry"** to load the updated render.yaml.
+2. Scroll down and click **"Apply"**.
+3. Wait for the backend to deploy (3-5 minutes).
+4. Copy the backend URL (will be something like `https://financial-control-backend.onrender.com`).
 
-1.  Log in to your [Render Dashboard](https://dashboard.render.com/).
-2.  Click **New +** and select **Blueprint**.
-3.  Connect your GitHub account and select the repository you just created.
-4.  Render will detect the `render.yaml` file.
-5.  Click **Apply**.
+## Step 3: Deploy Frontend as Static Site
 
-## Step 3: Final Configuration
-Render will automatically:
-1.  Build and deploy the **Backend** (Docker).
-2.  Build and deploy the **Frontend** (Static Site).
-3.  Set the `FRONTEND_URL` and `VITE_API_URL` environment variables automatically so they can talk to each other.
+1. Go to your [Render Dashboard](https://dashboard.render.com/).
+2. Click **"New +"** → **"Static Site"**.
+3. Connect to your GitHub repository: `joseedson18/financial-control-app`.
+4. Configure the static site:
+   - **Name**: `financial-control-frontend`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm install && npm run build`
+   - **Publish Directory**: `dist`
+5. Add environment variable:
+   - **Key**: `VITE_API_URL`
+   - **Value**: Your backend URL from Step 2 (e.g., `https://financial-control-backend.onrender.com`)
+6. Click **"Create Static Site"**.
+7. Wait for deployment (2-3 minutes).
 
-## Troubleshooting
--   **Build Errors**: Check the "Logs" tab in the Render dashboard for specific error messages.
--   **CORS Errors**: If the frontend cannot talk to the backend, ensure the `FRONTEND_URL` environment variable in the backend service matches the actual frontend URL.
+## Step 4: Update Backend Environment Variable
+
+1. Go to your backend service in Render.
+2. Navigate to **Environment** tab.
+3. Update `FRONTEND_URL` to your frontend URL (e.g., `https://financial-control-frontend.onrender.com`).
+4. The backend will automatically redeploy with the new CORS settings.
+
+## Your App is Live! 🎉
+
+- **Frontend**: `https://financial-control-frontend.onrender.com`
+- **Backend API**: `https://financial-control-backend.onrender.com`
+
+You can now upload your Conta Azul CSV files and use the application online!
+
+## Notes
+- Both services are on the free tier and will spin down after 15 minutes of inactivity.
+- The first request after inactivity may take 30-60 seconds to wake up.

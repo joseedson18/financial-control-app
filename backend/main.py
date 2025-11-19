@@ -8,6 +8,7 @@ from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashb
 import os
 
 app = FastAPI()
+# Force redeploy check
 
 # CORS Configuration
 # In production, FRONTEND_URL should be set to the actual frontend domain
