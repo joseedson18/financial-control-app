@@ -1,0 +1,116 @@
+{
+  "centros_custo": [
+    "Other Taxes",
+    "Marketing & Growth Expenses",
+    "Rendimentos de Aplicações",
+    "Identificar",
+    "Travel",
+    "Tech Support & Services",
+    "Payroll Tax - Brazil",
+    "Legal & Accounting Expenses",
+    "Web Services Expenses",
+    "Advisory & Prof. Services Expenses",
+    "Other Expenses",
+    "web Services Expenses",
+    "Wages Expenses",
+    "Google Play Net Revenue",
+    "App Store Net Revenue",
+    "Office Expenses"
+  ],
+  "categorias": [
+    "Ajuste de cotas",
+    "Marketing e Publicidade - Sem NF",
+    "Rendimentos de Aplicações",
+    "Transferência de Entrada",
+    "Transferência de Saída",
+    "Despesas a identificar",
+    "Viagens e Representações",
+    "Software / Licença de Uso",
+    "Retenção - ISS Serviços Tomados",
+    "Honorários BPO Financeiro",
+    "Honorários Contábeis",
+    "IOF",
+    "Cursos e Treinamentos",
+    "Transporte Urbano (táxi, Uber)",
+    "Prestador de Serviço PJ (Com NF)",
+    "Antecipação de Lucros",
+    "Pró-labore",
+    "Reembolsos Colaboradores",
+    "Reembolso",
+    "Marketing e Publicidade",
+    "Receitas de Vendas",
+    "Aluguel",
+    "Honorários Advocatícios",
+    "INSS sobre Pró-labore - GPS",
+    "Retenção - GPS 2631 - INSS",
+    "Simples Nacional - DAS",
+    "Confraternizações",
+    "Transferência Entre Contas"
+  ],
+  "periodo": {
+    "inicio": "2024-12-01 00:00:00",
+    "fim": "2025-12-01 00:00:00"
+  },
+  "fornecedores_por_centro": {
+    "Other Taxes": [
+      "BANCO INTER",
+      "IMPOSTOS/TRIBUTOS"
+    ],
+    "Marketing & Growth Expenses": [
+      "MGA MARKETING LTDA"
+    ],
+    "Rendimentos de Aplicações": [
+      "CONTA SIMPLES",
+      "BANCO INTER"
+    ],
+    "Identificar": [],
+    "Travel": [
+      "American Airlines"
+    ],
+    "Tech Support & Services": [
+      "Adobe",
+      "COMPANYHERO SAO PAULO BRA",
+      "ClickSign",
+      "Canva"
+    ],
+    "Payroll Tax - Brazil": [
+      "IMPOSTOS/TRIBUTOS"
+    ],
+    "Legal & Accounting Expenses": [
+      "BHUB.AI",
+      "WOLFF E SCRIPES ADVOGADOS"
+    ],
+    "Web Services Expenses": [],
+    "Advisory & Prof. Services Expenses": [
+      "BIRD PRESTACAO DE SERVICOS DE PSICOLOGIA E COACHING LTDA-EPP"
+    ],
+    "Other Expenses": [
+      "VITORIA DE OLIVEIRA FERREIRA CORREA",
+      "GABRIEL CANTARIN SIMOES",
+      "MARTINS DA COSTA & CIA LTDA",
+      "BANCO INTER"
+    ],
+    "web Services Expenses": [],
+    "Wages Expenses": [
+      "VITORIA DE OLIVEIRA FERREIRA CORREA",
+      "JONAS JERONIMO CHAVES DE SOUSA",
+      "BEATRIZ MATHIDIOS DE OLIVEIRA",
+      "MARCO ANTONIO PEREIRA DO ESPIRITO SANTO",
+      "MANASSES QUEIROZ SILVA",
+      "NUVATE (FILIPI RAFAEL)",
+      "GABRIEL CANTARIN SIMOES",
+      "PEDRO GERMANO",
+      "Bruno Adami Serine"
+    ],
+    "Google Play Net Revenue": [
+      "GOOGLE BRASIL PAGAMENTOS LTDA"
+    ],
+    "App Store Net Revenue": [
+      "App Store (Apple)"
+    ],
+    "Office Expenses": [
+      "GO OFFICES LATAM S/A",
+      "CO-SERVICES DO BRASIL  SERVICOS COMBINADOS DE APOIO A EDIFICIOS LTDA"
+    ]
+  }
+}

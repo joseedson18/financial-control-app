@@ -1,0 +1,342 @@
+import pandas as pd
+import numpy as np
+from datetime import datetime
+import io
+from typing import List, Dict, Any
+from .models import MappingItem, PnLItem, PnLResponse, DashboardData
+
+def process_upload(file_content: bytes) -> pd.DataFrame:
+    """
+    Process the uploaded CSV file from Conta Azul.
+    """
+    try:
+        df = pd.read_csv(io.BytesIO(file_content))
+    except Exception as e:
+        raise ValueError(f"Error reading CSV: {e}")
+
+    # Basic validation
+    required_cols = ['Data de competência', 'Valor (R$)', 'Centro de Custo 1', 'Nome do fornecedor/cliente']
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column: {col}")
+
+    # Data cleaning
+    df['Data de competência'] = pd.to_datetime(df['Data de competência'], format='%d/%m/%Y', errors='coerce')
+    
+    def converter_valor_br(valor_str):
+        if pd.isna(valor_str) or valor_str == '':
+            return 0.0
+        valor_str = str(valor_str).replace('R$', '').replace('.', '').replace(',', '.').strip()
+        try:
+            return float(valor_str)
+        except:
+            return 0.0
+
+    df['Valor_Num'] = df['Valor (R$)'].apply(converter_valor_br)
+    df['Mes_Competencia'] = df['Data de competência'].dt.to_period('M')
+    
+    return df
+
+def get_initial_mappings() -> List[MappingItem]:
+    """
+    Returns the initial hardcoded mappings.
+    """
+    raw_mappings = [
+        # RECEITAS
+        ["Receita Google", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "25", "Receita", "Sim", "Receita Google Play"],
+        ["Receita Apple", "App Store Net Revenue", "App Store (Apple)", "33", "Receita", "Sim", "Receita App Store"],
+        ["Receita Brasil", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "26", "Receita", "Sim", "Receita Brasil - Google"],
+        ["Receita Brasil", "App Store Net Revenue", "App Store (Apple)", "34", "Receita", "Sim", "Receita Brasil - Apple"],
+        ["Receita USA", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "28", "Receita", "Sim", "Receita USA - Google"],
+        ["Receita USA", "App Store Net Revenue", "App Store (Apple)", "36", "Receita", "Sim", "Receita USA - Apple"],
+        
+        # COGS
+        ["COGS", "Web Services Expenses", "AWS", "43", "Custo", "Sim", "Amazon Web Services"],
+        ["COGS", "Web Services Expenses", "Cloudflare", "44", "Custo", "Sim", "Cloudflare"],
+        ["COGS", "Web Services Expenses", "Heroku", "45", "Custo", "Sim", "Heroku"],
+        ["COGS", "Web Services Expenses", "IAPHUB", "46", "Custo", "Sim", "IAPHUB"],
+        ["COGS", "Web Services Expenses", "MailGun", "47", "Custo", "Sim", "MailGun"],
+        ["COGS", "Web Services Expenses", "AWS SES", "48", "Custo", "Sim", "AWS SES"],
+        
+        # SG&A
+        ["SG&A", "Marketing & Growth Expenses", "MGA MARKETING LTDA", "56", "Despesa", "Sim", "Marketing"],
+        ["SG&A", "Marketing & Growth Expenses", "Diversos", "56", "Despesa", "Sim", "Marketing - Diversos"],
+        ["SG&A", "Wages Expenses", "Diversos", "64", "Despesa", "Sim", "Salários e Pró-labore"],
+        ["SG&A", "Tech Support & Services", "Adobe", "68", "Despesa", "Sim", "Adobe Creative Cloud"],
+        ["SG&A", "Tech Support & Services", "Canva", "68", "Despesa", "Sim", "Canva"],
+        ["SG&A", "Tech Support & Services", "ClickSign", "68", "Despesa", "Sim", "ClickSign"],
+        ["SG&A", "Tech Support & Services", "COMPANYHERO SAO PAULO BRA", "68", "Despesa", "Sim", "CompanyHero"],
+        ["SG&A", "Tech Support & Services", "Diversos", "65", "Despesa", "Sim", "Tech Support - Diversos"],
+        
+        # OUTRAS DESPESAS
+        ["Outras Despesas", "Legal & Accounting Expenses", "BHUB.AI", "90", "Despesa", "Sim", "BPO Financeiro"],
+        ["Outras Despesas", "Legal & Accounting Expenses", "WOLFF E SCRIPES ADVOGADOS", "90", "Despesa", "Sim", "Honorários Advocatícios"],
+        ["Outras Despesas", "Office Expenses", "GO OFFICES LATAM S/A", "90", "Despesa", "Sim", "Aluguel"],
+        ["Outras Despesas", "Office Expenses", "CO-SERVICES DO BRASIL  SERVICOS COMBINADOS DE APOIO A EDIFICIOS LTDA", "90", "Despesa", "Sim", "Serviços de Escritório"],
+        ["Outras Despesas", "Travel", "American Airlines", "90", "Despesa", "Sim", "Viagens"],
+        ["Outras Despesas", "Other Taxes", "IMPOSTOS/TRIBUTOS", "90", "Despesa", "Sim", "Impostos e Tributos"],
+        ["Outras Despesas", "Payroll Tax - Brazil", "IMPOSTOS/TRIBUTOS", "90", "Despesa", "Sim", "Impostos sobre Folha"],
+        
+        # RENDIMENTOS
+        ["Rendimentos", "Rendimentos de Aplicações", "CONTA SIMPLES", "38", "Receita", "Sim", "Rendimentos CDI - Conta Simples"],
+        ["Rendimentos", "Rendimentos de Aplicações", "BANCO INTER", "38", "Receita", "Sim", "Rendimentos - Banco Inter"],
+    ]
+    
+    mappings = []
+    for m in raw_mappings:
+        mappings.append(MappingItem(
+            grupo_financeiro=m[0],
+            centro_custo=m[1],
+            fornecedor_cliente=m[2],
+            linha_pl=m[3],
+            tipo=m[4],
+            ativo=m[5],
+            observacoes=m[6]
+        ))
+    return mappings
+
+def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem]) -> PnLResponse:
+    """
+    Calculate P&L based on dataframe and mappings.
+    """
+    if df is None:
+        return PnLResponse(headers=[], rows=[])
+
+    months = sorted(df['Mes_Competencia'].dropna().unique())
+    month_strs = [str(m) for m in months]
+    
+    # Helper to sum values based on mapping
+    def get_value(mapping_item: MappingItem, month):
+        mask = (
+            (df['Mes_Competencia'] == month) &
+            (df['Centro de Custo 1'] == mapping_item.centro_custo)
+        )
+        if mapping_item.fornecedor_cliente != "Diversos":
+             mask &= (df['Nome do fornecedor/cliente'].astype(str).str.contains(mapping_item.fornecedor_cliente, case=False, na=False))
+        
+        return df[mask]['Valor_Num'].sum()
+
+    # Initialize data structure for calculations
+    # We'll use a dictionary to store values for each line number
+    # line_values[line_num][month_str] = value
+    line_values = {i: {m: 0.0 for m in month_strs} for i in range(1, 100)}
+
+    # 1. Populate from Mappings (Raw Data)
+    for m in mappings:
+        try:
+            line_num = int(m.linha_pl)
+        except:
+            continue
+            
+        for mo in months:
+            val = get_value(m, mo)
+            # Adjust sign: In extract, expenses are negative. In P&L, we usually want them positive for subtraction logic or keep negative.
+            # Let's stick to: Revenue (+), Expenses (-) in the raw summation.
+            # But the P&L display usually shows costs as positive numbers that are subtracted.
+            # Let's keep raw signs for now and handle logic below.
+            line_values[line_num][str(mo)] += val
+
+    # 2. Calculate Derived Lines (Formulas)
+    
+    # Revenue no Tax (Line 25) = Google (29) + Apple (37)
+    # Note: Mappings map to 25 and 33 for Google/Apple Revenue?
+    # Let's check mappings:
+    # Google Play Net Revenue -> 25 (Receita Google)
+    # App Store Net Revenue -> 33 (Receita Apple)
+    # Wait, the python script says:
+    # ws_pl[f'{col}25'] = f'={col}29+{col}37'  (Revenue no Tax = Google + Apple)
+    # But mappings map to 25 and 33?
+    # Let's adjust to match the Python script logic more closely.
+    # The mappings in `get_initial_mappings` seem to map to specific lines.
+    # Let's aggregate based on the mapped lines first.
+    
+    # We need to be careful. The mappings provided in `get_initial_mappings` put Google at 25 and Apple at 33.
+    # But the script `implementar_formulas_pl.py` puts Google at 29 and Apple at 37.
+    # Let's trust the `get_initial_mappings` I ported, but I might need to adjust the calculation logic to match WHERE the data is going.
+    
+    # Let's re-verify the mappings vs logic.
+    # Mappings:
+    # Google -> 25
+    # Apple -> 33
+    # Rendimentos -> 38
+    
+    # Logic in `implementar_formulas_pl.py`:
+    # Revenue (24) = 25 + 42
+    # Revenue no Tax (25) = 29 + 37 (Wait, this contradicts the mapping if mapping puts data in 25)
+    
+    # CORRECTION: The mappings in `get_initial_mappings` seem to be slightly different from `implementar_formulas_pl.py`.
+    # I will follow the `get_initial_mappings` line numbers as the source of truth for where raw data goes, 
+    # and build the aggregation logic around that.
+    
+    # Mapped Lines:
+    # 25: Google Revenue
+    # 33: Apple Revenue
+    # 38: Rendimentos (Invest Income)
+    # 43-48: COGS (AWS, etc)
+    # 56: Marketing
+    # 64: Wages
+    # 68: Tech Support (Adobe, etc) -> Wait, mapping says 68 for Adobe, but script says 69 for Tech Support total.
+    # 90: Other Expenses
+    
+    # Let's define the P&L Structure based on these mapped lines.
+    
+    calculated_lines = {}
+    
+    for m in month_strs:
+        # Raw aggregates
+        google_rev = line_values[25][m] + line_values[26][m] + line_values[28][m] # Sum all Google lines
+        apple_rev = line_values[33][m] + line_values[34][m] + line_values[36][m] # Sum all Apple lines
+        invest_income = line_values[38][m]
+        
+        cogs_aws = line_values[43][m]
+        cogs_cloudflare = line_values[44][m]
+        cogs_heroku = line_values[45][m]
+        cogs_iaphub = line_values[46][m]
+        cogs_mailgun = line_values[47][m]
+        cogs_ses = line_values[48][m]
+        
+        marketing = line_values[56][m]
+        wages = line_values[64][m]
+        tech_support = line_values[68][m] + line_values[65][m] # Adobe + Diversos
+        
+        other_expenses = line_values[90][m]
+        
+        # Calculations
+        
+        # 1. Revenue
+        revenue_no_tax = google_rev + apple_rev
+        total_revenue = revenue_no_tax + invest_income
+        
+        # 2. COGS
+        # Payment Processing = 17.65% of Revenue no Tax
+        payment_processing = revenue_no_tax * 0.1765 * -1 # Expense is negative
+        
+        cogs_total = cogs_aws + cogs_cloudflare + cogs_heroku + cogs_iaphub + cogs_mailgun + cogs_ses
+        
+        cost_of_revenue = payment_processing + cogs_total
+        
+        # 3. Gross Profit
+        gross_profit = total_revenue + cost_of_revenue # cost is negative
+        
+        # 4. OpEx
+        sga = marketing + wages + tech_support
+        opex = sga + other_expenses
+        
+        # 5. EBITDA
+        ebitda = gross_profit + opex # opex is negative
+        
+        # Store calculated values
+        line_values[100][m] = total_revenue # Revenue
+        line_values[101][m] = revenue_no_tax
+        line_values[102][m] = payment_processing
+        line_values[103][m] = cogs_total
+        line_values[104][m] = gross_profit
+        line_values[105][m] = sga
+        line_values[106][m] = ebitda
+        line_values[107][m] = marketing
+        line_values[108][m] = wages
+        line_values[109][m] = tech_support
+
+    # Build P&L Rows
+    rows = []
+    
+    def add_row(line_num, desc, val_dict, is_header=False, is_total=False):
+        rows.append(PnLItem(
+            line_number=line_num,
+            description=desc,
+            values=val_dict,
+            is_header=is_header,
+            is_total=is_total
+        ))
+
+    add_row(1, "RECEITA OPERACIONAL BRUTA", line_values[100], is_header=True)
+    add_row(2, "Receita de Vendas (Google + Apple)", line_values[101])
+    add_row(3, "Rendimentos de Aplicações", line_values[38])
+    
+    add_row(4, "(-) CUSTOS DIRETOS", {m: line_values[102][m] + line_values[103][m] for m in month_strs}, is_header=True)
+    add_row(5, "Payment Processing (17.65%)", line_values[102])
+    add_row(6, "COGS (Web Services)", line_values[103])
+    
+    add_row(7, "(=) LUCRO BRUTO", line_values[104], is_total=True)
+    
+    add_row(8, "(-) DESPESAS OPERACIONAIS", {m: line_values[105][m] + line_values[90][m] for m in month_strs}, is_header=True)
+    add_row(9, "Marketing", line_values[107])
+    add_row(10, "Salários (Wages)", line_values[108])
+    add_row(11, "Tech Support & Services", line_values[109])
+    add_row(12, "Outras Despesas", line_values[90])
+    
+    add_row(13, "(=) EBITDA", line_values[106], is_total=True)
+    
+    # Margins
+    ebitda_margins = {}
+    gross_margins = {}
+    for m in month_strs:
+        rev = line_values[100][m]
+        if rev != 0:
+            ebitda_margins[m] = line_values[106][m] / rev
+            gross_margins[m] = line_values[104][m] / rev
+        else:
+            ebitda_margins[m] = 0.0
+            gross_margins[m] = 0.0
+            
+    add_row(14, "Margem EBITDA %", ebitda_margins)
+    add_row(15, "Margem Bruta %", gross_margins)
+
+    return PnLResponse(headers=month_strs, rows=rows)
+
+def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem]) -> DashboardData:
+    if df is None:
+        return DashboardData(kpis={}, monthly_data=[], cost_structure={})
+        
+    pnl = calculate_pnl(df, mappings)
+    
+    # Extract latest month data
+    if not pnl.headers:
+        return DashboardData(kpis={}, monthly_data=[], cost_structure={})
+        
+    latest_month = pnl.headers[-1]
+    
+    # Helper to find row value
+    def get_val(desc_start, month):
+        for row in pnl.rows:
+            if row.description.startswith(desc_start):
+                return row.values.get(month, 0.0)
+        return 0.0
+
+    revenue = get_val("RECEITA", latest_month)
+    ebitda = get_val("(=) EBITDA", latest_month)
+    gross_profit = get_val("(=) LUCRO", latest_month)
+    
+    # KPIs
+    kpis = {
+        "revenue": revenue,
+        "ebitda": ebitda,
+        "ebitda_margin": ebitda / revenue if revenue else 0,
+        "gross_margin": gross_profit / revenue if revenue else 0,
+        "nau": 0, # Placeholder
+        "cpa": 0  # Placeholder
+    }
+    
+    # Monthly Data for Charts
+    monthly_data = []
+    for m in pnl.headers:
+        monthly_data.append({
+            "month": m,
+            "revenue": get_val("RECEITA", m),
+            "ebitda": get_val("(=) EBITDA", m),
+            "costs": get_val("(-) CUSTOS", m) * -1, # Make positive for chart
+            "expenses": get_val("(-) DESPESAS", m) * -1
+        })
+        
+    # Cost Structure (Latest Month)
+    cost_structure = {
+        "payment_processing": abs(get_val("Payment", latest_month)),
+        "cogs": abs(get_val("COGS", latest_month)),
+        "marketing": abs(get_val("Marketing", latest_month)),
+        "wages": abs(get_val("Salários", latest_month)),
+        "tech": abs(get_val("Tech", latest_month)),
+        "other": abs(get_val("Outras", latest_month))
+    }
+    
+    return DashboardData(kpis=kpis, monthly_data=monthly_data, cost_structure=cost_structure)
+
