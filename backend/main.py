@@ -1,10 +1,13 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from typing import List
 import pandas as pd
 from models import MappingItem, MappingUpdate, DashboardData, PnLResponse
 from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data
 from ai_service import generate_insights
+from auth import Token, authenticate_user, create_access_token, get_current_user, USERS_DB, verify_password, get_password_hash
+from datetime import timedelta
 
 import os
 import json
@@ -14,25 +17,27 @@ from datetime import datetime
 
 app = FastAPI()
 
-# Serve the built frontend (Vite) from the dist folder
-from fastapi.staticfiles import StaticFiles
-import os
+# Auth Endpoint
+@app.post("/api/login", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = USERS_DB.get(form_data.username)
+    if not user or not verify_password(form_data.password, user['password_hash']):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=30)
+    access_token = create_access_token(
+        data={"sub": form_data.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
-# Resolve the absolute path to the frontend build output (../frontend/dist)
-frontend_dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
-if os.path.exists(frontend_dist_path):
-    app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
-else:
-    print(f"⚠️ Frontend build not found at {frontend_dist_path}. Serving API only.")
-
-# Optional: a simple health check at root (will be overridden by static files for index.html)
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
-
+# Protected Routes Dependency
+# usage: user: dict = Depends(get_current_user)
 
 @app.post("/api/insights")
-def get_ai_insights(request_data: dict = Body(...)):
+def get_ai_insights(request_data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Generate AI insights based on dashboard data"""
     api_key = request_data.get("api_key")
     dashboard_data = request_data.get("data")
@@ -174,7 +179,7 @@ def update_pnl_override(data: dict):
     return {"message": "Override saved"}
 
 @app.delete("/api/pnl/overrides")
-def clear_pnl_overrides():
+def clear_pnl_overrides(current_user: dict = Depends(get_current_user)):
     """Clear all P&L overrides"""
     global current_overrides
     current_overrides = {}
@@ -203,7 +208,7 @@ def get_status():
     }
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     global current_df
     content = await file.read()
     try:
@@ -214,7 +219,7 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/api/data")
-def clear_data():
+def clear_data(current_user: dict = Depends(get_current_user)):
     """Clear all uploaded data"""
     global current_df
     current_df = None
@@ -226,18 +231,18 @@ def clear_data():
     return {"message": "Data cleared successfully"}
 
 @app.get("/mappings", response_model=List[MappingItem])
-def get_mappings():
+def get_mappings(current_user: dict = Depends(get_current_user)):
     return current_mappings
 
 @app.post("/mappings")
-def update_mappings(update: MappingUpdate):
+def update_mappings(update: MappingUpdate, current_user: dict = Depends(get_current_user)):
     global current_mappings
     current_mappings = update.mappings
     save_data()  # Persist to disk
     return {"message": "Mappings updated"}
 
 @app.delete("/api/mappings")
-def reset_mappings():
+def reset_mappings(current_user: dict = Depends(get_current_user)):
     """Reset mappings to default"""
     global current_mappings
     current_mappings = get_initial_mappings()
@@ -245,7 +250,7 @@ def reset_mappings():
     return {"message": "Mappings reset to default"}
 
 @app.get("/pnl", response_model=PnLResponse)
-def get_pnl():
+def get_pnl(current_user: dict = Depends(get_current_user)):
     global current_df, current_overrides
     
     # Lazy load if data is missing but might exist on disk
@@ -260,7 +265,7 @@ def get_pnl():
     return calculate_pnl(current_df, current_mappings, current_overrides)
 
 @app.get("/dashboard", response_model=DashboardData)
-def get_dashboard():
+def get_dashboard(current_user: dict = Depends(get_current_user)):
     global current_df, current_mappings, current_overrides
     
     # Lazy load if data is missing but might exist on disk
@@ -275,3 +280,14 @@ def get_dashboard():
     # Note: get_dashboard_data needs to be updated to accept overrides too if we want charts to reflect edits
     # For now, let's update logic.py signature for get_dashboard_data as well
     return get_dashboard_data(current_df, current_mappings, current_overrides)
+
+# Serve the built frontend (Vite) from the dist folder
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Resolve the absolute path to the frontend build output (../frontend/dist)
+frontend_dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
+if os.path.exists(frontend_dist_path):
+    app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
+else:
+    print(f"⚠️ Frontend build not found at {frontend_dist_path}. Serving API only.")

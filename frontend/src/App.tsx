@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { LayoutDashboard, FileText, Upload, Settings, Menu, X, Globe } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LayoutDashboard, Upload, FileSpreadsheet, Settings, LogOut, Menu, Globe, X } from 'lucide-react';
+import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import PnLTable from './components/PnLTable';
-import FileUpload from './components/FileUpload';
 import MappingManager from './components/MappingManager';
+import Login from './components/Login';
 
-// Translation Dictionary
 const translations = {
   pt: {
     upload: 'Importar Dados',
@@ -25,7 +25,13 @@ const translations = {
     mappingsDesc: 'Gerencie como suas despesas são categorizadas.',
     autoSync: 'Sincronização Ativa',
     appName: 'FinControl',
-    appTagline: 'Automação Financeira'
+    appTagline: 'Automação Financeira',
+    nav: {
+      upload: 'Importar',
+      dashboard: 'Dashboard',
+      pnl: 'DRE',
+      mappings: 'Mapeamentos'
+    }
   },
   en: {
     upload: 'Upload Data',
@@ -45,98 +51,121 @@ const translations = {
     mappingsDesc: 'Manage how your expenses are categorized.',
     autoSync: 'Auto-sync Active',
     appName: 'FinControl',
-    appTagline: 'Financial Automation'
+    appTagline: 'Financial Automation',
+    nav: {
+      upload: 'Upload',
+      dashboard: 'Dashboard',
+      pnl: 'P&L',
+      mappings: 'Mappings'
+    }
   }
 };
 
 function App() {
-  const [activeTab, setActiveTab] = useState('upload');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [language, setLanguage] = useState<'pt' | 'en'>('pt'); // Default to Portuguese
+  const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'pnl' | 'mappings'>('upload');
+  const [language, setLanguage] = useState<'pt' | 'en'>('pt');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (token: string) => {
+    localStorage.setItem('token', token);
+    setIsAuthenticated(true);
+    setActiveTab('dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setActiveTab('upload');
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   const t = translations[language];
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'upload':
+        return <FileUpload language={language} />;
       case 'dashboard':
         return <Dashboard language={language} />;
       case 'pnl':
         return <PnLTable language={language} />;
       case 'mappings':
         return <MappingManager language={language} />;
-      case 'upload':
       default:
         return <FileUpload language={language} />;
     }
   };
 
-  const NavItem = ({ id, label, icon: Icon }: { id: string; label: string; icon: any }) => (
+  const NavItem = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
     <button
-      onClick={() => setActiveTab(id)}
-      className={`
-        w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm
-        ${activeTab === id
-          ? 'gradient-primary text-white shadow-lg shadow-cyan-500/20 glow-cyan'
-          : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}
-      `}
+      onClick={() => {
+        setActiveTab(id);
+        setIsSidebarOpen(false);
+      }}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${activeTab === id
+        ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-white/10 shadow-lg shadow-cyan-500/10'
+        : 'text-gray-400 hover:bg-white/5 hover:text-white'
+        }`}
     >
-      <Icon size={20} className={activeTab === id ? 'animate-pulse' : ''} />
-      <span>{label}</span>
+      <Icon size={20} className={`transition-colors ${activeTab === id ? 'text-cyan-400' : 'text-gray-500 group-hover:text-gray-300'}`} />
+      <span className="font-medium">{label}</span>
+      {activeTab === id && (
+        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+      )}
     </button>
   );
 
   return (
-    <div className="min-h-screen flex font-sans bg-black overflow-hidden">
+    <div className="flex h-screen bg-[#0B1120] text-white overflow-hidden font-sans selection:bg-cyan-500/30">
       {/* Sidebar */}
-      <aside
-        className={`
-          fixed lg:static inset-y-0 left-0 z-50 w-72 glass-strong border-r border-white/10
-          transform transition-all duration-300 ease-in-out
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-      >
+      <aside className={`
+                fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#0f172a]/95 backdrop-blur-xl border-r border-white/10 transform transition-transform duration-300 ease-out
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
         <div className="h-full flex flex-col">
-          {/* Logo & Brand */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-cyan-500/30 glow-cyan">
-                  FC
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gradient-primary">{t.appName}</h1>
-                  <p className="text-xs text-gray-500">{t.appTagline}</p>
-                </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  Finance AI
+                </h1>
+                <p className="text-xs text-gray-500 mt-1 tracking-wider uppercase">Control & Analytics</p>
               </div>
               <button
                 onClick={() => setIsSidebarOpen(false)}
-                className="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                className="lg:hidden p-2 text-gray-400 hover:text-white"
               >
                 <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-dark">
-            <NavItem id="upload" label={t.upload} icon={Upload} />
-            <NavItem id="dashboard" label={t.dashboard} icon={LayoutDashboard} />
-            <NavItem id="pnl" label={t.pnl} icon={FileText} />
-            <NavItem id="mappings" label={t.mappings} icon={Settings} />
+            <NavItem id="upload" label={t.nav.upload} icon={Upload} />
+            <NavItem id="dashboard" label={t.nav.dashboard} icon={LayoutDashboard} />
+            <NavItem id="pnl" label={t.nav.pnl} icon={FileSpreadsheet} />
+            <NavItem id="mappings" label={t.nav.mappings} icon={Settings} />
           </nav>
 
-          {/* System Status */}
           <div className="p-4 border-t border-white/10">
-            <div className="glass bg-white/5 p-4 rounded-xl">
-              <p className="text-xs font-medium text-gray-400 mb-2">{t.systemStatus}</p>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-lg shadow-emerald-500/50"></span>
-                </span>
-                <span className="text-sm font-medium text-emerald-400">{t.online}</span>
-              </div>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm"
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </aside>
@@ -173,7 +202,6 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Language Toggle */}
             <button
               onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
               className="flex items-center gap-2 px-3 py-1.5 glass rounded-lg hover:bg-white/10 transition-colors text-sm text-gray-300"
@@ -181,18 +209,12 @@ function App() {
               <Globe size={16} className="text-cyan-400" />
               <span>{language === 'pt' ? 'PT' : 'EN'}</span>
             </button>
-
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 glass rounded-lg">
-              <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-              <span className="text-xs text-gray-400">{t.autoSync}</span>
-            </div>
           </div>
         </header>
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-6 lg:p-8 scrollbar-dark">
           <div className="max-w-7xl mx-auto">
-            {/* Page Title */}
             <div className="mb-8">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">
                 {activeTab === 'upload' && t.uploadTitle}
@@ -208,7 +230,6 @@ function App() {
               </p>
             </div>
 
-            {/* Dynamic Content */}
             {renderContent()}
           </div>
         </div>
