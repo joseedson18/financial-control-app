@@ -9,26 +9,50 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
     """
     Process the uploaded CSV file from Conta Azul.
     """
-    # Try different encodings
+    # Try different encodings and separators
     df = None
     encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+    separators = [',', ';', '\t']
     last_error = None
     
     for encoding in encodings:
-        try:
-            df = pd.read_csv(io.BytesIO(file_content), encoding=encoding)
-            break  # Success!
-        except UnicodeDecodeError:
-            continue
-        except Exception as e:
-            last_error = e
-            continue
+        for sep in separators:
+            try:
+                # Try strict parsing first
+                df = pd.read_csv(io.BytesIO(file_content), encoding=encoding, sep=sep)
+                
+                # Check if it has the critical column 'Data de competência'
+                if 'Data de competência' in df.columns:
+                    break
+                else:
+                    df = None # Not the right separator
+            except Exception:
+                continue
+        
+        if df is not None:
+            break
+            
+        # If strict parsing failed for this encoding, try with on_bad_lines='skip' as fallback
+        for sep in separators:
+            try:
+                print(f"⚠️ Strict parsing failed. Retrying with on_bad_lines='skip', encoding={encoding}, sep='{sep}'")
+                df = pd.read_csv(io.BytesIO(file_content), encoding=encoding, sep=sep, on_bad_lines='skip', engine='python')
+                if 'Data de competência' in df.columns:
+                    break
+                else:
+                    df = None
+            except Exception as e:
+                last_error = e
+                continue
+        
+        if df is not None:
+            break
     
     if df is None:
         if last_error:
-            raise ValueError(f"Error reading CSV file. Please ensure it's a valid CSV: {last_error}")
+            raise ValueError(f"Error reading CSV file. Please ensure it's a valid CSV. Details: {last_error}")
         else:
-            raise ValueError("Error reading CSV file. The file encoding is not supported.")
+            raise ValueError("Error reading CSV file. Could not detect valid format (encoding/separator).")
 
     # Basic validation
     required_cols = ['Data de competência', 'Valor (R$)', 'Centro de Custo 1', 'Nome do fornecedor/cliente']
