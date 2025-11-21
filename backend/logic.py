@@ -311,7 +311,19 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem]) -> Dashboa
     if not pnl.headers:
         return DashboardData(kpis={}, monthly_data=[], cost_structure={})
         
+    # Find the latest month with non-zero revenue
     latest_month = pnl.headers[-1]
+    for m in reversed(pnl.headers):
+        # Check revenue for this month (Line 1 is Gross Revenue)
+        rev = 0
+        for row in pnl.rows:
+            if row.line_number == 1: # RECEITA OPERACIONAL BRUTA
+                rev = row.values.get(m, 0)
+                break
+        
+        if rev > 0:
+            latest_month = m
+            break
     
     # Helper to find row value
     def get_val(desc_start, month):

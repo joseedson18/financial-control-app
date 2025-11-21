@@ -51,7 +51,8 @@ const Dashboard: React.FC = () => {
         );
     }
 
-    if (!data || !data.kpis.revenue) {
+    // Check if we have data (allow 0 revenue if we have monthly data)
+    if (!data || !data.monthly_data || data.monthly_data.length === 0) {
         return (
             <div className="card-dark text-center max-w-2xl mx-auto">
                 <div className="w-24 h-24 mx-auto mb-6 gradient-primary rounded-2xl flex items-center justify-center glow-cyan">
