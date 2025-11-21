@@ -14,6 +14,20 @@ from datetime import datetime
 
 app = FastAPI()
 
+# Serve the built frontend (Vite) from the dist folder
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Resolve the absolute path to the frontend build output (../frontend/dist)
+frontend_dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
+app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
+
+# Optional: a simple health check at root (will be overridden by static files for index.html)
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
 @app.post("/api/insights")
 def get_ai_insights(request_data: dict = Body(...)):
     """Generate AI insights based on dashboard data"""
