@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
@@ -12,16 +11,20 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Admin Users (Hardcoded as requested)
-# Passwords are hashed versions of: fxdxudu18! and euamoZe123!
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Using simple SHA256 hashing for passwords
+import hashlib
+
+def hash_password(password: str) -> str:
+    """Hash password using SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
 
 USERS_DB = {
     "josemercadogc18@gmail.com": {
-        "password_hash": pwd_context.hash("fxdxudu18!"),
+        "password_hash": hash_password("fxdxudu18!"),
         "name": "Jose Mercado"
     },
     "matheuscastrocorrea@gmail.com": {
-        "password_hash": pwd_context.hash("euamoZe123!"),
+        "password_hash": hash_password("euamoZe123!"),
         "name": "Matheus Castro"
     }
 }
@@ -36,10 +39,10 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    return hash_password(plain_password) == hashed_password
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    return hash_password(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
