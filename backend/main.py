@@ -20,7 +20,10 @@ import os
 
 # Resolve the absolute path to the frontend build output (../frontend/dist)
 frontend_dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
-app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
+if os.path.exists(frontend_dist_path):
+    app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
+else:
+    print(f"⚠️ Frontend build not found at {frontend_dist_path}. Serving API only.")
 
 # Optional: a simple health check at root (will be overridden by static files for index.html)
 @app.get("/health")
