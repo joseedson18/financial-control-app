@@ -30,9 +30,27 @@ const FileUpload: React.FC = () => {
             });
             setStatus('success');
             setMessage(`Successfully processed ${response.data.rows} records.`);
+
+            // Refresh the page data after successful upload
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } catch (error: any) {
             setStatus('error');
-            setMessage(error.response?.data?.detail || 'Upload failed. Please check the file format.');
+            console.error('Upload error:', error);
+
+            // Better error messaging
+            if (error.response) {
+                // Server responded with error
+                const detail = error.response.data?.detail || error.response.data?.message || 'Unknown server error';
+                setMessage(`Upload failed: ${detail}`);
+            } else if (error.request) {
+                // Request made but no response
+                setMessage('Upload failed: Cannot connect to server. Please check if the backend is running.');
+            } else {
+                // Something else happened
+                setMessage(`Upload failed: ${error.message || 'Unknown error occurred'}`);
+            }
         }
     };
 

@@ -9,10 +9,26 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
     """
     Process the uploaded CSV file from Conta Azul.
     """
-    try:
-        df = pd.read_csv(io.BytesIO(file_content))
-    except Exception as e:
-        raise ValueError(f"Error reading CSV: {e}")
+    # Try different encodings
+    df = None
+    encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+    last_error = None
+    
+    for encoding in encodings:
+        try:
+            df = pd.read_csv(io.BytesIO(file_content), encoding=encoding)
+            break  # Success!
+        except UnicodeDecodeError:
+            continue
+        except Exception as e:
+            last_error = e
+            continue
+    
+    if df is None:
+        if last_error:
+            raise ValueError(f"Error reading CSV file. Please ensure it's a valid CSV: {last_error}")
+        else:
+            raise ValueError("Error reading CSV file. The file encoding is not supported.")
 
     # Basic validation
     required_cols = ['Data de competência', 'Valor (R$)', 'Centro de Custo 1', 'Nome do fornecedor/cliente']
@@ -120,7 +136,7 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem]) -> PnLResponse:
     # We'll use a dictionary to store values for each line number
     # line_values[line_num][month_str] = value
     # Initialize line values for all possible line numbers used in calculations (up to 120)
-line_values = {i: {m: 0.0 for m in month_strs} for i in range(1, 121)}
+    line_values = {i: {m: 0.0 for m in month_strs} for i in range(1, 121)}
 
     # 1. Populate from Mappings (Raw Data)
     for m in mappings:
