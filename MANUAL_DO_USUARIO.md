@@ -1,10 +1,16 @@
 # Manual do Usuário - Dashboard Financeiro
 
-Bem-vindo ao seu novo Dashboard Financeiro Automatizado! Este guia explicará como utilizar todas as funcionalidades do sistema para gerenciar seus dados do Conta Azul.
+Bem-vindo ao seu novo Dashboard Financeiro Automatizado! Este sistema roda na nuvem (Render), permitindo que você gerencie seus dados financeiros de qualquer lugar, sem necessidade de instalação.
 
-## 🚀 Como Iniciar
+## 🚀 Como Acessar
 
-Certifique-se de que o sistema está rodando. Se você é um desenvolvedor ou está rodando localmente:
+### 🌍 Acesso Online (Recomendado)
+O sistema está disponível online. Basta acessar o link fornecido pelo administrador no seu navegador (Chrome, Firefox, Edge, etc.).
+
+**Link de Acesso:** *[Insira o Link da Sua Aplicação no Render Aqui]*
+
+### 💻 Rodando Localmente (Para Desenvolvedores)
+Caso precise rodar o sistema no seu próprio computador para manutenção:
 1. **Backend**: `cd backend && python main.py`
 2. **Frontend**: `cd frontend && npm run dev`
 3. Acesse no navegador: `http://localhost:5173`
@@ -18,7 +24,7 @@ A primeira tela que você verá é a de **Importar Dados**.
 1. Clique na área pontilhada ou arraste seu arquivo CSV exportado do Conta Azul.
 2. Clique no botão **"Processar Arquivo"**.
 3. O sistema processará os dados e atualizará automaticamente o Dashboard.
-   * **Nota**: Seus dados são salvos automaticamente, então você não precisa fazer upload toda vez que abrir o sistema.
+   * **Nota**: Seus dados são salvos automaticamente na nuvem, então você não precisa fazer upload toda vez que abrir o sistema.
 
 ## 2. Dashboard (Visão Geral)
 
