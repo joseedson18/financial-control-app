@@ -380,10 +380,12 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
     revenue = get_val("RECEITA", latest_month)
     ebitda = get_val("(=) EBITDA", latest_month)
     gross_profit = get_val("(=) LUCRO", latest_month)
+    net_result = get_val("(=) RESULTADO", latest_month)
     
     # KPIs
     kpis = {
-        "revenue": revenue,
+        "total_revenue": revenue,
+        "net_result": net_result,
         "ebitda": ebitda,
         "ebitda_margin": ebitda / revenue if revenue else 0,
         "gross_margin": gross_profit / revenue if revenue else 0,
