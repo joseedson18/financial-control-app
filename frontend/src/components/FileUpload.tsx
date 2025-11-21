@@ -55,16 +55,24 @@ const FileUpload: React.FC = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Upload size={32} />
+        <div className="max-w-3xl mx-auto">
+            <div className="card-dark hover:border-cyan-500/30 transition-all duration-500">
+                {/* Icon Header */}
+                <div className="w-20 h-20 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-cyan-500/30 glow-cyan">
+                    <Upload size={40} className="text-white" />
                 </div>
 
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Upload Financial Data</h2>
-                <p className="text-slate-500 mb-8">Upload your Conta Azul CSV export to generate the P&L and Dashboard.</p>
+                <h2 className="text-3xl font-bold text-center mb-3">
+                    <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                        Upload Financial Data
+                    </span>
+                </h2>
+                <p className="text-gray-400 text-center mb-10">
+                    Upload your Conta Azul CSV export to generate the P&L and Dashboard.
+                </p>
 
-                <div className="relative group cursor-pointer mb-6">
+                {/* Upload Area */}
+                <div className="relative group cursor-pointer mb-8">
                     <input
                         type="file"
                         accept=".csv"
@@ -72,51 +80,77 @@ const FileUpload: React.FC = () => {
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     <div className={`
-            border-2 border-dashed rounded-xl p-8 transition-all
-            ${file ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'}
-          `}>
+                        relative border-2 border-dashed rounded-2xl p-12 transition-all duration-300
+                        ${file
+                            ? 'border-cyan-500 bg-cyan-500/5 glow-cyan'
+                            : 'border-gray-600 hover:border-cyan-500/50 hover:bg-white/5 group-hover:glow-cyan'
+                        }
+                    `}>
                         {file ? (
-                            <div className="flex items-center justify-center gap-3 text-blue-700">
-                                <FileSpreadsheet size={24} />
-                                <span className="font-medium">{file.name}</span>
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="p-4 bg-cyan-500/10 rounded-xl">
+                                    <FileSpreadsheet size={48} className="text-cyan-400" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-semibold text-cyan-400 text-lg">{file.name}</p>
+                                    <p className="text-gray-500 text-sm mt-1">
+                                        {(file.size / 1024).toFixed(2)} KB
+                                    </p>
+                                </div>
                             </div>
                         ) : (
-                            <div className="text-slate-500">
-                                <span className="text-blue-600 font-medium">Click to upload</span> or drag and drop
-                                <p className="text-xs mt-1">CSV files only</p>
+                            <div className="text-center">
+                                <div className="mb-4">
+                                    <Upload size={48} className="mx-auto text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                                </div>
+                                <p className="text-gray-300 font-medium text-lg mb-2">
+                                    <span className="text-gradient-primary">Click to upload</span> or drag and drop
+                                </p>
+                                <p className="text-gray-500 text-sm">CSV files from Conta Azul</p>
                             </div>
                         )}
                     </div>
                 </div>
 
+                {/* Upload Button */}
                 <button
                     onClick={handleUpload}
                     disabled={!file || status === 'uploading'}
                     className={`
-            w-full py-3 px-4 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2
-            ${!file || status === 'uploading'
-                            ? 'bg-slate-300 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20'}
-          `}
+                        w-full py-4 px-6 rounded-xl font-semibold text-white text-lg
+                        transition-all duration-300 flex items-center justify-center gap-3
+                        ${!file || status === 'uploading'
+                            ? 'bg-gray-700 cursor-not-allowed opacity-50'
+                            : 'gradient-primary shadow-xl shadow-cyan-500/30 hover:shadow-2xl hover:shadow-cyan-500/40 hover:scale-105 glow-cyan'}
+                    `}
                 >
                     {status === 'uploading' ? (
                         <>
-                            <Loader2 size={20} className="animate-spin" />
-                            Processing...
+                            <Loader2 size={24} className="animate-spin" />
+                            <span>Processing...</span>
                         </>
                     ) : (
                         <>
-                            <Upload size={20} />
-                            Process File
+                            <Upload size={24} />
+                            <span>Process File</span>
                         </>
                     )}
                 </button>
 
+                {/* Status Message */}
                 {message && (
-                    <div className={`mt-6 p-4 rounded-lg flex items-center gap-3 text-sm text-left ${status === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                        }`}>
-                        {status === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                        <span>{message}</span>
+                    <div className={`
+                        mt-6 p-5 rounded-xl flex items-center gap-4 text-sm border
+                        ${status === 'success'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            : 'bg-red-500/10 border-red-500/30 text-red-400'}
+                    `}>
+                        <div className="flex-shrink-0">
+                            {status === 'success'
+                                ? <CheckCircle size={24} className="text-emerald-400" />
+                                : <AlertCircle size={24} className="text-red-400" />}
+                        </div>
+                        <span className="flex-1 font-medium">{message}</span>
                     </div>
                 )}
             </div>
