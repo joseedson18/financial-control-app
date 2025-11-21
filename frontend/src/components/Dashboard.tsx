@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
 import api from '../api';
 import StatCard from './StatCard';
+import AiInsights from './AiInsights';
 import { Printer, TrendingUp, DollarSign, Activity, PieChart as PieChartIcon } from 'lucide-react';
 
 interface DashboardProps {
@@ -153,6 +154,11 @@ export default function Dashboard({ language }: DashboardProps) {
                 <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
                     <Printer size={18} /> {t.exportPdf}
                 </button>
+            </div>
+
+            {/* AI Insights Section */}
+            <div className="print:hidden">
+                <AiInsights data={data} language={language} />
             </div>
 
             {/* KPI Cards */}

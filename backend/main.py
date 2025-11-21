@@ -1,9 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import pandas as pd
 from models import MappingItem, MappingUpdate, DashboardData, PnLResponse
 from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data
+from ai_service import generate_insights
 
 import os
 import json
@@ -12,6 +13,22 @@ from pathlib import Path
 from datetime import datetime
 
 app = FastAPI()
+
+@app.post("/api/insights")
+def get_ai_insights(request_data: dict = Body(...)):
+    """Generate AI insights based on dashboard data"""
+    api_key = request_data.get("api_key")
+    dashboard_data = request_data.get("data")
+    
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API Key is required")
+        
+    if not dashboard_data:
+        raise HTTPException(status_code=400, detail="Dashboard data is required")
+        
+    insights = generate_insights(dashboard_data, api_key)
+    return {"insights": insights}
+
 # Force redeploy check
 
 # CORS Configuration
