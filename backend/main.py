@@ -152,6 +152,12 @@ def update_mappings(update: MappingUpdate):
 @app.get("/pnl", response_model=PnLResponse)
 def get_pnl():
     global current_df
+    
+    # Lazy load if data is missing but might exist on disk
+    if current_df is None:
+        print("⚠️ Data missing in memory, attempting lazy load...")
+        load_data()
+        
     if current_df is None:
         # Return empty structure if no data
         return PnLResponse(headers=[], rows=[])
@@ -161,6 +167,12 @@ def get_pnl():
 @app.get("/dashboard", response_model=DashboardData)
 def get_dashboard():
     global current_df, current_mappings
+    
+    # Lazy load if data is missing but might exist on disk
+    if current_df is None:
+        print("⚠️ Data missing in memory, attempting lazy load...")
+        load_data()
+        
     if current_df is None:
         # Return empty structure
         return DashboardData(kpis={}, monthly_data=[], cost_structure={})
