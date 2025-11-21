@@ -41,8 +41,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
             <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Lock className="text-blue-400" size={32} />
+                    <div className="w-24 h-24 mx-auto mb-4">
+                        <img
+                            src="/logo.png"
+                            alt="UMatch Logo"
+                            className="w-full h-full object-contain rounded-xl"
+                        />
                     </div>
                     <h1 className="text-2xl font-bold text-white mb-2">Admin Portal</h1>
                     <p className="text-slate-400">Sign in to access the dashboard</p>

@@ -136,11 +136,18 @@ function App() {
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Finance AI
-                </h1>
-                <p className="text-xs text-gray-500 mt-1 tracking-wider uppercase">Control & Analytics</p>
+              <div className="flex items-center gap-3">
+                <img
+                  src="/logo.png"
+                  alt="UMatch Logo"
+                  className="w-10 h-10 object-contain rounded-lg"
+                />
+                <div>
+                  <h1 className="text-xl font-bold text-white">
+                    UMatch
+                  </h1>
+                  <p className="text-xs text-gray-500 mt-0.5 tracking-wider uppercase">Control & Analytics</p>
+                </div>
               </div>
               <button
                 onClick={() => setIsSidebarOpen(false)}
