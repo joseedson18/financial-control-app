@@ -36,11 +36,13 @@ DATA_DIR = Path("./data")
 DATA_DIR.mkdir(exist_ok=True)
 CSV_PATH = DATA_DIR / "current_data.pkl"
 MAPPINGS_PATH = DATA_DIR / "mappings.json"
+OVERRIDES_PATH = DATA_DIR / "overrides.json"
 METADATA_PATH = DATA_DIR / "metadata.json"
 
 # State (with persistence)
 current_df = None
 current_mappings = get_initial_mappings()
+current_overrides = {} # Format: {"line_num": {"month": value}}
 
 # Persistence helper functions
 def save_data():
@@ -54,6 +56,10 @@ def save_data():
         mappings_dict = [m.model_dump() for m in current_mappings]
         with open(MAPPINGS_PATH, 'w') as f:
             json.dump(mappings_dict, f)
+            
+        # Save overrides
+        with open(OVERRIDES_PATH, 'w') as f:
+            json.dump(current_overrides, f)
         
         # Save metadata
         metadata = {
@@ -70,7 +76,7 @@ def save_data():
 
 def load_data():
     """Load dataframe and mappings from disk on startup"""
-    global current_df, current_mappings
+    global current_df, current_mappings, current_overrides
     
     try:
         # Load dataframe
@@ -85,6 +91,12 @@ def load_data():
                 mappings_dict = json.load(f)
                 current_mappings = [MappingItem(**m) for m in mappings_dict]
             print(f"✅ Loaded {len(current_mappings)} mappings")
+            
+        # Load overrides
+        if OVERRIDES_PATH.exists():
+            with open(OVERRIDES_PATH, 'r') as f:
+                current_overrides = json.load(f)
+            print(f"✅ Loaded overrides for {len(current_overrides)} lines")
         
         # Load metadata
         if METADATA_PATH.exists():
@@ -96,6 +108,7 @@ def load_data():
         print(f"⚠️ Error loading data: {e}")
         current_df = None
         current_mappings = get_initial_mappings()
+        current_overrides = {}
 
 @app.on_event("startup")
 async def startup_event():
@@ -105,6 +118,25 @@ async def startup_event():
 @app.get("/")
 def read_root():
     return {"message": "Financial Control API is running"}
+
+@app.post("/pnl/override")
+def update_pnl_override(data: dict):
+    """Update a specific cell in the P&L"""
+    global current_overrides
+    
+    line_num = str(data.get("line_number"))
+    month = data.get("month")
+    value = data.get("value")
+    
+    if not line_num or not month:
+        raise HTTPException(status_code=400, detail="Missing line_number or month")
+        
+    if line_num not in current_overrides:
+        current_overrides[line_num] = {}
+        
+    current_overrides[line_num][month] = float(value)
+    save_data()
+    return {"message": "Override saved"}
 
 @app.get("/status")
 def get_status():
@@ -151,7 +183,7 @@ def update_mappings(update: MappingUpdate):
 
 @app.get("/pnl", response_model=PnLResponse)
 def get_pnl():
-    global current_df
+    global current_df, current_overrides
     
     # Lazy load if data is missing but might exist on disk
     if current_df is None:
@@ -162,11 +194,11 @@ def get_pnl():
         # Return empty structure if no data
         return PnLResponse(headers=[], rows=[])
     
-    return calculate_pnl(current_df, current_mappings)
+    return calculate_pnl(current_df, current_mappings, current_overrides)
 
 @app.get("/dashboard", response_model=DashboardData)
 def get_dashboard():
-    global current_df, current_mappings
+    global current_df, current_mappings, current_overrides
     
     # Lazy load if data is missing but might exist on disk
     if current_df is None:
@@ -177,4 +209,6 @@ def get_dashboard():
         # Return empty structure
         return DashboardData(kpis={}, monthly_data=[], cost_structure={})
     
-    return get_dashboard_data(current_df, current_mappings)
+    # Note: get_dashboard_data needs to be updated to accept overrides too if we want charts to reflect edits
+    # For now, let's update logic.py signature for get_dashboard_data as well
+    return get_dashboard_data(current_df, current_mappings, current_overrides)

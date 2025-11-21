@@ -1,30 +1,62 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api';
-import { Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Download, Edit2, Save } from 'lucide-react';
+
+interface PnLProps {
+    language: 'pt' | 'en';
+}
 
 interface PnLItem {
     line_number: number;
     description: string;
-    values: Record<string, number>;
+    values: { [key: string]: number };
     is_header: boolean;
     is_total: boolean;
 }
 
-interface PnLResponse {
+interface PnLData {
     headers: string[];
     rows: PnLItem[];
 }
 
-const PnLTable: React.FC = () => {
-    const [data, setData] = useState<PnLResponse | null>(null);
+const translations = {
+    pt: {
+        title: 'Demonstrativo de Resultados',
+        export: 'Exportar CSV',
+        editMode: 'Modo de Edição',
+        save: 'Salvar',
+        cancel: 'Cancelar',
+        loading: 'Carregando DRE...',
+        noData: 'Nenhum dado disponível.',
+        description: 'Descrição',
+        editing: 'Editando...',
+        overrideSuccess: 'Valor atualizado com sucesso!',
+        overrideError: 'Erro ao atualizar valor.'
+    },
+    en: {
+        title: 'Profit & Loss Statement',
+        export: 'Export CSV',
+        editMode: 'Edit Mode',
+        save: 'Save',
+        cancel: 'Cancel',
+        loading: 'Loading P&L...',
+        noData: 'No data available.',
+        description: 'Description',
+        editing: 'Editing...',
+        overrideSuccess: 'Value updated successfully!',
+        overrideError: 'Error updating value.'
+    }
+};
+
+export default function PnLTable({ language }: PnLProps) {
+    const [data, setData] = useState<PnLData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [editingCell, setEditingCell] = useState<{ line: number, month: string } | null>(null);
+    const [editValue, setEditValue] = useState('');
+    const t = translations[language];
 
-    useEffect(() => {
-        fetchPnL();
-    }, []);
-
-    const fetchPnL = async () => {
+    const fetchData = async () => {
         try {
             const response = await api.get('/pnl');
             setData(response.data);
@@ -35,113 +67,158 @@ const PnLTable: React.FC = () => {
         }
     };
 
-    const handleDownload = () => {
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleExport = () => {
         if (!data) return;
 
-        // Prepare data for Excel
-        const wsData = [];
+        const csvContent = [
+            ['Description', ...data.headers].join(','),
+            ...data.rows.map(row => {
+                const values = data.headers.map(h => row.values[h] || 0);
+                return [`"${row.description}"`, ...values].join(',');
+            })
+        ].join('\n');
 
-        // Header row
-        wsData.push(['Description', ...data.headers]);
-
-        // Data rows
-        data.rows.forEach(row => {
-            const rowData = [row.description];
-            data.headers.forEach(header => {
-                rowData.push(String(row.values[header] || 0));
-            });
-            wsData.push(rowData);
-        });
-
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "P&L");
-        XLSX.writeFile(wb, "PnL_Statement.xlsx");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'pnl_export.csv';
+        link.click();
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center p-16">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading P&L...</p>
-                </div>
-            </div>
-        );
-    }
+    const handleCellClick = (row: PnLItem, month: string) => {
+        if (!isEditMode) return;
+        setEditingCell({ line: row.line_number, month });
+        setEditValue(String(row.values[month] || 0));
+    };
 
-    if (!data || data.rows.length === 0) {
-        return (
-            <div className="card-dark text-center max-w-2xl mx-auto">
-                <p className="text-gray-400">No data available. Please upload a file.</p>
-            </div>
-        );
-    }
+    const handleSaveOverride = async () => {
+        if (!editingCell) return;
+
+        try {
+            await api.post('/pnl/override', {
+                line_number: editingCell.line,
+                month: editingCell.month,
+                value: parseFloat(editValue)
+            });
+
+            // Refresh data
+            await fetchData();
+            setEditingCell(null);
+        } catch (error) {
+            console.error('Error saving override:', error);
+            alert(t.overrideError);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSaveOverride();
+        } else if (e.key === 'Escape') {
+            setEditingCell(null);
+        }
+    };
+
+    if (loading) return <div className="p-8 text-center text-cyan-400 animate-pulse">{t.loading}</div>;
+    if (!data || data.rows.length === 0) return <div className="p-8 text-center text-gray-400">{t.noData}</div>;
 
     return (
-        <div className="card-dark overflow-hidden p-0">
-            {/* Header */}
-            <div className="p-6 border-b border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-semibold text-gray-200 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
-                        Profit & Loss Statement
-                    </h2>
-                    <p className="text-gray-400 text-sm mt-1">{data.rows.length} line items across {data.headers.length} months</p>
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-200">{t.title}</h2>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        className={`btn-secondary flex items-center gap-2 ${isEditMode ? 'bg-amber-500/20 text-amber-400 border-amber-500/50' : ''}`}
+                    >
+                        {isEditMode ? <Save size={18} /> : <Edit2 size={18} />}
+                        {isEditMode ? t.save : t.editMode}
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        className="btn-secondary flex items-center gap-2"
+                    >
+                        <Download size={18} />
+                        {t.export}
+                    </button>
                 </div>
-                <button
-                    onClick={handleDownload}
-                    className="btn-secondary flex items-center gap-2 text-sm"
-                >
-                    <Download size={18} />
-                    <span>Export to Excel</span>
-                </button>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto scrollbar-dark">
-                <table className="w-full text-sm">
-                    <thead className="glass-strong sticky top-0 z-10">
-                        <tr>
-                            <th className="px-6 py-4 text-left border-b border-white/10 text-gray-300 font-semibold sticky left-0 glass-strong">
-                                Description
-                            </th>
-                            {data.headers.map(header => (
-                                <th key={header} className="px-6 py-4 text-right border-b border-white/10 text-gray-300 font-semibold whitespace-nowrap">
-                                    {header}
+            <div className="overflow-x-auto pb-4">
+                <div className="min-w-max">
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <th className="sticky left-0 z-20 bg-[#0f172a] p-4 text-left text-sm font-semibold text-gray-400 border-b border-gray-800 min-w-[300px]">
+                                    {t.description}
                                 </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {data.rows.map((row, idx) => (
-                            <tr
-                                key={idx}
-                                className={`
-                                    transition-colors
-                                    ${row.is_header ? 'glass bg-white/5 font-bold text-cyan-400' : ''}
-                                    ${row.is_total ? 'glass bg-purple-500/10 font-bold text-purple-400 border-y-2 border-purple-500/30' : ''}
-                                    ${!row.is_header && !row.is_total ? 'hover:bg-white/5' : ''}
-                                `}
-                            >
-                                <td className={`px-6 py-3 sticky left-0 glass-strong ${row.is_header || row.is_total ? '' : 'pl-10'} text-gray-200`}>
-                                    {row.description}
-                                </td>
                                 {data.headers.map(header => (
-                                    <td key={header} className="px-6 py-3 text-right whitespace-nowrap font-mono text-gray-300">
-                                        {row.description.includes('%')
-                                            ? ((row.values[header] || 0) * 100).toFixed(2) + '%'
-                                            : (row.values[header] || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                                        }
-                                    </td>
+                                    <th key={header} className="p-4 text-right text-sm font-semibold text-gray-400 border-b border-gray-800 min-w-[120px]">
+                                        {header}
+                                    </th>
                                 ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {data.rows.map((row) => (
+                                <tr
+                                    key={row.line_number}
+                                    className={`
+                    group transition-colors
+                    ${row.is_header ? 'bg-gray-800/50 font-bold text-gray-200' : 'hover:bg-white/5 text-gray-300'}
+                    ${row.is_total ? 'font-bold border-t border-gray-700 bg-gray-800/30' : ''}
+                  `}
+                                >
+                                    <td className="sticky left-0 z-10 bg-inherit p-3 border-b border-gray-800/50 group-hover:bg-[#1e293b] transition-colors">
+                                        {row.description}
+                                    </td>
+                                    {data.headers.map(month => {
+                                        const isEditing = editingCell?.line === row.line_number && editingCell?.month === month;
+                                        const value = row.values[month] || 0;
+
+                                        return (
+                                            <td
+                                                key={month}
+                                                className={`
+                          p-3 text-right border-b border-gray-800/50 font-mono text-sm
+                          ${isEditMode && !row.is_header && !row.is_total ? 'cursor-pointer hover:bg-amber-500/10 hover:text-amber-400' : ''}
+                        `}
+                                                onClick={() => !row.is_header && !row.is_total && handleCellClick(row, month)}
+                                            >
+                                                {isEditing ? (
+                                                    <input
+                                                        autoFocus
+                                                        type="number"
+                                                        className="w-full bg-gray-900 border border-cyan-500 rounded px-2 py-1 text-right text-white outline-none"
+                                                        value={editValue}
+                                                        onChange={(e) => setEditValue(e.target.value)}
+                                                        onBlur={handleSaveOverride}
+                                                        onKeyDown={handleKeyDown}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                ) : (
+                                                    row.description.includes('%')
+                                                        ? (value * 100).toFixed(1) + '%'
+                                                        : value.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+            {isEditMode && (
+                <div className="fixed bottom-8 right-8 bg-amber-500 text-black px-4 py-2 rounded-lg shadow-lg animate-bounce font-semibold">
+                    {t.editing}
+                </div>
+            )}
         </div>
     );
-};
-
-export default PnLTable;
+}

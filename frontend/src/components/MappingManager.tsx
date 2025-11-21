@@ -1,6 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api';
-import { Save, Plus, Trash2, Check } from 'lucide-react';
+import { Save, Plus, Trash2, Search } from 'lucide-react';
+
+interface MappingManagerProps {
+    language: 'pt' | 'en';
+}
 
 interface MappingItem {
     grupo_financeiro: string;
@@ -12,10 +16,53 @@ interface MappingItem {
     observacoes?: string;
 }
 
-const MappingManager: React.FC = () => {
+const translations = {
+    pt: {
+        title: 'Gerenciador de Mapeamentos',
+        subtitle: 'Configure como suas despesas são categorizadas no DRE',
+        searchPlaceholder: 'Buscar mapeamentos...',
+        saveChanges: 'Salvar Alterações',
+        addMapping: 'Adicionar Mapeamento',
+        loading: 'Carregando mapeamentos...',
+        headers: {
+            financialGroup: 'Grupo Financeiro',
+            costCenter: 'Centro de Custo',
+            supplier: 'Fornecedor/Cliente',
+            plLine: 'Linha DRE',
+            type: 'Tipo',
+            active: 'Ativo',
+            actions: 'Ações'
+        },
+        success: 'Mapeamentos salvos com sucesso!',
+        error: 'Erro ao salvar mapeamentos.'
+    },
+    en: {
+        title: 'Mapping Manager',
+        subtitle: 'Configure how your expenses are categorized in the P&L',
+        searchPlaceholder: 'Search mappings...',
+        saveChanges: 'Save Changes',
+        addMapping: 'Add Mapping',
+        loading: 'Loading mappings...',
+        headers: {
+            financialGroup: 'Financial Group',
+            costCenter: 'Cost Center',
+            supplier: 'Supplier/Client',
+            plLine: 'P&L Line',
+            type: 'Type',
+            active: 'Active',
+            actions: 'Actions'
+        },
+        success: 'Mappings saved successfully!',
+        error: 'Error saving mappings.'
+    }
+};
+
+export default function MappingManager({ language }: MappingManagerProps) {
     const [mappings, setMappings] = useState<MappingItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const t = translations[language];
 
     useEffect(() => {
         fetchMappings();
@@ -33,187 +80,165 @@ const MappingManager: React.FC = () => {
     };
 
     const handleSave = async () => {
-        setSaving(true);
         try {
             await api.post('/mappings', { mappings });
-            // Show success feedback
-            setTimeout(() => setSaving(false), 1000);
+            setHasUnsavedChanges(false);
+            alert(t.success);
         } catch (error) {
             console.error('Error saving mappings:', error);
-            alert('Error saving mappings');
-            setSaving(false);
+            alert(t.error);
         }
+    };
+
+    const handleAdd = () => {
+        setMappings([
+            {
+                grupo_financeiro: '',
+                centro_custo: '',
+                fornecedor_cliente: '',
+                linha_pl: '',
+                tipo: 'Despesa',
+                ativo: 'Sim'
+            },
+            ...mappings
+        ]);
+        setHasUnsavedChanges(true);
+    };
+
+    const handleDelete = (index: number) => {
+        const newMappings = [...mappings];
+        newMappings.splice(index, 1);
+        setMappings(newMappings);
+        setHasUnsavedChanges(true);
     };
 
     const handleChange = (index: number, field: keyof MappingItem, value: string) => {
         const newMappings = [...mappings];
         newMappings[index] = { ...newMappings[index], [field]: value };
         setMappings(newMappings);
+        setHasUnsavedChanges(true);
     };
 
-    const handleDelete = (index: number) => {
-        const newMappings = mappings.filter((_, i) => i !== index);
-        setMappings(newMappings);
-    };
+    const filteredMappings = mappings.filter(m =>
+        Object.values(m).some(val =>
+            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    );
 
-    const handleAdd = () => {
-        setMappings([...mappings, {
-            grupo_financeiro: '',
-            centro_custo: '',
-            fornecedor_cliente: '',
-            linha_pl: '',
-            tipo: 'Despesa',
-            ativo: 'Sim',
-            observacoes: ''
-        }]);
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center p-16">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading mappings...</p>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return <div className="p-8 text-center text-cyan-400 animate-pulse">{t.loading}</div>;
 
     return (
-        <div className="card-dark p-0 overflow-hidden">
-            {/* Header */}
-            <div className="p-6 border-b border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-6">
+            {/* Header Actions */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-semibold text-gray-200 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
-                        Cost Center Mappings
-                    </h2>
-                    <p className="text-gray-400 text-sm mt-1">{mappings.length} mapping rules</p>
+                    <h2 className="text-xl font-semibold text-gray-200">{t.title}</h2>
+                    <p className="text-sm text-gray-400">{t.subtitle}</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full md:w-auto">
                     <button
                         onClick={handleAdd}
-                        className="btn-secondary flex items-center gap-2 text-sm"
+                        className="btn-secondary flex items-center gap-2"
                     >
                         <Plus size={18} />
-                        <span>Add Rule</span>
+                        {t.addMapping}
                     </button>
                     <button
                         onClick={handleSave}
-                        disabled={saving}
-                        className={`flex items-center gap-2 text-sm ${saving
-                            ? 'btn-secondary'
-                            : 'btn-primary'
-                            }`}
+                        disabled={!hasUnsavedChanges}
+                        className={`btn-primary flex items-center gap-2 ${!hasUnsavedChanges && 'opacity-50 cursor-not-allowed'}`}
                     >
-                        {saving ? (
-                            <>
-                                <Check size={18} className="animate-pulse" />
-                                <span>Saved!</span>
-                            </>
-                        ) : (
-                            <>
-                                <Save size={18} />
-                                <span>Save Changes</span>
-                            </>
-                        )}
+                        <Save size={18} />
+                        {t.saveChanges}
                     </button>
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto scrollbar-dark max-h-[600px]">
-                <table className="min-w-full text-sm">
-                    <thead className="glass-strong sticky top-0 z-10">
-                        <tr>
-                            <th className="px-3 py-3 text-left text-gray-300 font-semibold border-b border-white/10">Group</th>
-                            <th className="px-3 py-3 text-left text-gray-300 font-semibold border-b border-white/10">Cost Center</th>
-                            <th className="px-3 py-3 text-left text-gray-300 font-semibold border-b border-white/10">Supplier/Client</th>
-                            <th className="px-3 py-3 text-left text-gray-300 font-semibold border-b border-white/10 w-24">P&L Line</th>
-                            <th className="px-3 py-3 text-left text-gray-300 font-semibold border-b border-white/10 w-32">Type</th>
-                            <th className="px-3 py-3 text-left text-gray-300 font-semibold border-b border-white/10 w-24">Active</th>
-                            <th className="px-3 py-3 text-center text-gray-300 font-semibold border-b border-white/10 w-20">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {mappings.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                <td className="p-2 border-r border-white/5">
-                                    <input
-                                        className="input-dark w-full text-sm py-1.5"
-                                        value={item.grupo_financeiro}
-                                        onChange={e => handleChange(idx, 'grupo_financeiro', e.target.value)}
-                                        placeholder="Financial Group"
-                                    />
-                                </td>
-                                <td className="p-2 border-r border-white/5">
-                                    <input
-                                        className="input-dark w-full text-sm py-1.5"
-                                        value={item.centro_custo}
-                                        onChange={e => handleChange(idx, 'centro_custo', e.target.value)}
-                                        placeholder="Cost Center"
-                                    />
-                                </td>
-                                <td className="p-2 border-r border-white/5">
-                                    <input
-                                        className="input-dark w-full text-sm py-1.5"
-                                        value={item.fornecedor_cliente}
-                                        onChange={e => handleChange(idx, 'fornecedor_cliente', e.target.value)}
-                                        placeholder="Supplier/Client"
-                                    />
-                                </td>
-                                <td className="p-2 border-r border-white/5">
-                                    <input
-                                        className="input-dark w-full text-sm py-1.5"
-                                        value={item.linha_pl}
-                                        onChange={e => handleChange(idx, 'linha_pl', e.target.value)}
-                                        placeholder="Line #"
-                                    />
-                                </td>
-                                <td className="p-2 border-r border-white/5">
-                                    <select
-                                        className="input-dark w-full text-sm py-1.5"
-                                        value={item.tipo}
-                                        onChange={e => handleChange(idx, 'tipo', e.target.value)}
-                                    >
-                                        <option value="Receita">Revenue</option>
-                                        <option value="Custo">Cost</option>
-                                        <option value="Despesa">Expense</option>
-                                    </select>
-                                </td>
-                                <td className="p-2 border-r border-white/5">
-                                    <select
-                                        className="input-dark w-full text-sm py-1.5"
-                                        value={item.ativo}
-                                        onChange={e => handleChange(idx, 'ativo', e.target.value)}
-                                    >
-                                        <option value="Sim">Yes</option>
-                                        <option value="Não">No</option>
-                                    </select>
-                                </td>
-                                <td className="p-2 text-center">
-                                    <button
-                                        onClick={() => handleDelete(idx)}
-                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
-                                        title="Delete mapping"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {/* Search Bar */}
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+                <input
+                    type="text"
+                    placeholder={t.searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-cyan-500 transition-colors"
+                />
             </div>
 
-            {/* Footer Info */}
-            <div className="p-4 border-t border-white/10 bg-white/5">
-                <p className="text-xs text-gray-500 text-center">
-                    Changes are saved to memory. Click "Save Changes" to persist your modifications.
-                </p>
+            {/* Table */}
+            <div className="card-dark overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-800/50 text-gray-400 font-medium uppercase">
+                            <tr>
+                                <th className="px-4 py-3">{t.headers.financialGroup}</th>
+                                <th className="px-4 py-3">{t.headers.costCenter}</th>
+                                <th className="px-4 py-3">{t.headers.supplier}</th>
+                                <th className="px-4 py-3">{t.headers.plLine}</th>
+                                <th className="px-4 py-3">{t.headers.type}</th>
+                                <th className="px-4 py-3 text-center">{t.headers.actions}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-800">
+                            {filteredMappings.map((item, index) => (
+                                <tr key={index} className="hover:bg-white/5 transition-colors">
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.grupo_financeiro}
+                                            onChange={(e) => handleChange(index, 'grupo_financeiro', e.target.value)}
+                                            className="bg-transparent border-none w-full text-gray-300 focus:ring-0"
+                                        />
+                                    </td>
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.centro_custo}
+                                            onChange={(e) => handleChange(index, 'centro_custo', e.target.value)}
+                                            className="bg-transparent border-none w-full text-gray-300 focus:ring-0"
+                                        />
+                                    </td>
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.fornecedor_cliente}
+                                            onChange={(e) => handleChange(index, 'fornecedor_cliente', e.target.value)}
+                                            className="bg-transparent border-none w-full text-gray-300 focus:ring-0"
+                                        />
+                                    </td>
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.linha_pl}
+                                            onChange={(e) => handleChange(index, 'linha_pl', e.target.value)}
+                                            className="bg-transparent border-none w-full text-cyan-400 font-mono focus:ring-0"
+                                        />
+                                    </td>
+                                    <td className="p-2">
+                                        <select
+                                            value={item.tipo}
+                                            onChange={(e) => handleChange(index, 'tipo', e.target.value)}
+                                            className="bg-transparent border-none text-gray-300 focus:ring-0"
+                                        >
+                                            <option value="Despesa">Despesa</option>
+                                            <option value="Receita">Receita</option>
+                                        </select>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <button
+                                            onClick={() => handleDelete(index)}
+                                            className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
-};
-
-export default MappingManager;
+}

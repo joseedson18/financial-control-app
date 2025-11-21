@@ -1,101 +1,121 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
 import api from '../api';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    LineChart, Line, PieChart, Pie, Cell
-} from 'recharts';
-import { DollarSign, TrendingUp, Activity, Percent } from 'lucide-react';
+import StatCard from './StatCard';
+import { Printer, TrendingUp, DollarSign, Activity, PieChart as PieChartIcon } from 'lucide-react';
+
+interface DashboardProps {
+    language: 'pt' | 'en';
+}
 
 interface DashboardData {
-    kpis: {
-        revenue: number;
-        ebitda: number;
-        ebitda_margin: number;
-        gross_margin: number;
-        nau: number;
-        cpa: number;
-    };
+    kpis: any;
     monthly_data: any[];
     cost_structure: any;
 }
 
-const COLORS = ['#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#3b82f6'];
+const translations = {
+    pt: {
+        loading: 'Carregando dados do dashboard...',
+        noDataTitle: 'Nenhum Dado Disponível',
+        noDataDesc: 'Importe um arquivo CSV do Conta Azul para ver seu dashboard financeiro com KPIs, gráficos e insights.',
+        uploadBtn: 'Importar Arquivo',
+        revenue: 'Receita Total',
+        grossProfit: 'Lucro Bruto',
+        ebitda: 'EBITDA',
+        netResult: 'Resultado Líquido',
+        revenueVsCosts: 'Receita vs Custos',
+        costStructure: 'Estrutura de Custos',
+        monthlyTrends: 'Tendências Mensais',
+        exportPdf: 'Exportar PDF',
+        rev: 'Receita',
+        cost: 'Custos',
+        profit: 'Lucro',
+        marketing: 'Marketing',
+        wages: 'Salários',
+        tech: 'Tecnologia',
+        other: 'Outros'
+    },
+    en: {
+        loading: 'Loading dashboard data...',
+        noDataTitle: 'No Data Available',
+        noDataDesc: 'Upload a CSV file from Conta Azul to see your financial dashboard with KPIs, charts, and insights.',
+        uploadBtn: 'Upload File',
+        revenue: 'Total Revenue',
+        grossProfit: 'Gross Profit',
+        ebitda: 'EBITDA',
+        netResult: 'Net Result',
+        revenueVsCosts: 'Revenue vs Costs',
+        costStructure: 'Cost Structure',
+        monthlyTrends: 'Monthly Trends',
+        exportPdf: 'Export PDF',
+        rev: 'Revenue',
+        cost: 'Costs',
+        profit: 'Profit',
+        marketing: 'Marketing',
+        wages: 'Wages',
+        tech: 'Tech',
+        other: 'Other'
+    }
+};
 
-const Dashboard: React.FC = () => {
+const COLORS = {
+    revenue: '#06b6d4', // Cyan 500
+    cost: '#ec4899',    // Pink 500
+    profit: '#8b5cf6',  // Violet 500
+    marketing: '#f59e0b', // Amber 500
+    wages: '#10b981',   // Emerald 500
+    tech: '#3b82f6',    // Blue 500
+    other: '#6366f1'    // Indigo 500
+};
+
+export default function Dashboard({ language }: DashboardProps) {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const t = translations[language];
 
     useEffect(() => {
-        fetchDashboard();
+        const fetchData = async () => {
+            try {
+                const response = await api.get('/dashboard');
+                setData(response.data);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
-    const fetchDashboard = async () => {
-        try {
-            const response = await api.get('/dashboard');
-            setData(response.data);
-        } catch (error) {
-            console.error('Error fetching dashboard:', error);
-        } finally {
-            setLoading(false);
-        }
+    const handlePrint = () => {
+        window.print();
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center p-16">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading Dashboard...</p>
-                </div>
-            </div>
-        );
-    }
+    const formatCurrency = (value: number) => {
+        return value.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+    };
 
-    // Check if we have data (allow 0 revenue if we have monthly data)
-    if (!data || !data.monthly_data || data.monthly_data.length === 0) {
-        return (
-            <div className="card-dark text-center max-w-2xl mx-auto">
-                <div className="w-24 h-24 mx-auto mb-6 gradient-primary rounded-2xl flex items-center justify-center glow-cyan">
-                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-200 mb-3">No Data Available</h3>
-                <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                    Upload a CSV file from Conta Azul to see your financial dashboard with KPIs, charts, and insights.
-                </p>
-                <button
-                    onClick={() => window.location.href = '/'}
-                    className="btn-primary inline-flex items-center gap-2"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 0 11-1 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    Upload File
-                </button>
-            </div>
-        );
-    }
+    const formatPercent = (value: number) => {
+        return (value * 100).toFixed(1) + '%';
+    };
 
-    const formatCurrency = (val: number) => val?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const formatPercent = (val: number) => (val * 100).toFixed(2) + '%';
-
-    const costPieData = Object.entries(data.cost_structure).map(([key, value]) => ({
-        name: key.replace('_', ' ').toUpperCase(),
-        value: value as number
-    })).filter(item => item.value > 0);
-
-    // Custom tooltip for charts
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="glass-strong p-4 rounded-xl border border-white/20">
-                    <p className="text-cyan-400 font-semibold mb-2">{label}</p>
+                <div className="bg-gray-900 border border-gray-700 p-3 rounded shadow-xl">
+                    <p className="text-gray-300 font-semibold mb-2">{label}</p>
                     {payload.map((entry: any, index: number) => (
-                        <p key={index} className="text-gray-300 text-sm">
-                            {entry.name}: <span className="font-semibold" style={{ color: entry.color }}>
-                                {formatCurrency(entry.value)}
-                            </span>
+                        <p key={index} style={{ color: entry.color }} className="text-sm">
+                            {entry.name}: {
+                                entry.name === 'Margin' || entry.name === 'EBITDA %'
+                                    ? formatPercent(entry.value)
+                                    : formatCurrency(entry.value)
+                            }
                         </p>
                     ))}
                 </div>
@@ -104,46 +124,61 @@ const Dashboard: React.FC = () => {
         return null;
     };
 
-    const KPICard = ({ title, value, icon: Icon, gradient }: any) => (
-        <div className="card-dark hover:scale-105 group">
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-sm font-medium text-gray-400 mb-2">{title}</p>
-                    <h3 className="text-3xl font-bold text-gray-100">{value}</h3>
-                </div>
-                <div className={`p-3 rounded-xl ${gradient} shadow-lg group-hover:scale-110 transition-transform`}>
-                    <Icon size={24} className="text-white" />
+    if (loading) return <div className="p-8 text-center text-cyan-400 animate-pulse">{t.loading}</div>;
+
+    // Check if we have data (allow 0 revenue if we have monthly data)
+    if (!data || !data.monthly_data || data.monthly_data.length === 0) {
+        return (
+            <div className="text-center p-12">
+                <div className="bg-gray-800/50 rounded-2xl p-8 max-w-md mx-auto border border-gray-700">
+                    <Activity size={48} className="mx-auto text-gray-500 mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-200 mb-2">{t.noDataTitle}</h3>
+                    <p className="text-gray-400 mb-6">{t.noDataDesc}</p>
                 </div>
             </div>
-        </div>
-    );
+        );
+    }
+
+    // Prepare Pie Chart Data
+    const costPieData = Object.entries(data.cost_structure || {}).map(([name, value]) => ({
+        name,
+        value
+    }));
+
+    const pieColors = [COLORS.marketing, COLORS.wages, COLORS.tech, COLORS.other, COLORS.cost];
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 print:space-y-4">
+            <div className="flex justify-end print:hidden">
+                <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
+                    <Printer size={18} /> {t.exportPdf}
+                </button>
+            </div>
+
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <KPICard
-                    title="Total Revenue"
-                    value={formatCurrency(data.kpis.revenue)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    title={t.revenue}
+                    value={formatCurrency(data.kpis.total_revenue)}
                     icon={DollarSign}
-                    gradient="gradient-primary"
+                    gradient="bg-gradient-to-br from-cyan-500 to-blue-500"
                 />
-                <KPICard
-                    title="EBITDA"
-                    value={formatCurrency(data.kpis.ebitda)}
+                <StatCard
+                    title={t.netResult}
+                    value={formatCurrency(data.kpis.net_result)}
                     icon={Activity}
-                    gradient="gradient-success"
+                    gradient="bg-gradient-to-br from-emerald-500 to-teal-500"
                 />
-                <KPICard
-                    title="EBITDA Margin"
-                    value={formatPercent(data.kpis.ebitda_margin)}
-                    icon={Percent}
-                    gradient="bg-gradient-to-br from-purple-500 to-pink-500"
-                />
-                <KPICard
-                    title="Gross Margin"
+                <StatCard
+                    title={t.grossProfit}
                     value={formatPercent(data.kpis.gross_margin)}
                     icon={TrendingUp}
+                    gradient="bg-gradient-to-br from-purple-500 to-pink-500"
+                />
+                <StatCard
+                    title={t.ebitda}
+                    value={formatCurrency(data.kpis.ebitda)}
+                    icon={PieChartIcon}
                     gradient="bg-gradient-to-br from-amber-500 to-orange-500"
                 />
             </div>
@@ -153,7 +188,7 @@ const Dashboard: React.FC = () => {
                 <div className="card-dark">
                     <h3 className="text-xl font-semibold mb-6 text-gray-200 flex items-center gap-2">
                         <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
-                        Revenue vs Costs Trend
+                        {t.revenueVsCosts}
                     </h3>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
@@ -163,8 +198,8 @@ const Dashboard: React.FC = () => {
                                 <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Legend wrapperStyle={{ color: '#d1d5db' }} />
-                                <Bar dataKey="revenue" name="Revenue" fill="#06b6d4" radius={[8, 8, 0, 0]} />
-                                <Bar dataKey="costs" name="Costs" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="revenue" name={t.rev} fill="#06b6d4" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="costs" name={t.cost} fill="#ef4444" radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -173,7 +208,7 @@ const Dashboard: React.FC = () => {
                 <div className="card-dark">
                     <h3 className="text-xl font-semibold mb-6 text-gray-200 flex items-center gap-2">
                         <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-cyan-500 rounded-full"></div>
-                        EBITDA Evolution
+                        {t.ebitda}
                     </h3>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
@@ -203,7 +238,7 @@ const Dashboard: React.FC = () => {
                 <div className="card-dark">
                     <h3 className="text-xl font-semibold mb-6 text-gray-200 flex items-center gap-2">
                         <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
-                        Cost Structure (Latest Month)
+                        {t.costStructure}
                     </h3>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
@@ -220,7 +255,7 @@ const Dashboard: React.FC = () => {
                                     style={{ fontSize: '12px', fill: '#d1d5db' }}
                                 >
                                     {costPieData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
@@ -231,6 +266,4 @@ const Dashboard: React.FC = () => {
             </div>
         </div>
     );
-};
-
-export default Dashboard;
+}
