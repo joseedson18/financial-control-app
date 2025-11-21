@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { Download, Edit2, Save } from 'lucide-react';
+import { Download, Edit2, Save, Trash2 } from 'lucide-react';
 
 interface PnLProps {
     language: 'pt' | 'en';
@@ -31,7 +31,9 @@ const translations = {
         description: 'Descrição',
         editing: 'Editando...',
         overrideSuccess: 'Valor atualizado com sucesso!',
-        overrideError: 'Erro ao atualizar valor.'
+        overrideError: 'Erro ao atualizar valor.',
+        clearEdits: 'Limpar Edições',
+        confirmClear: 'Tem certeza que deseja limpar todas as edições manuais?'
     },
     en: {
         title: 'Profit & Loss Statement',
@@ -44,7 +46,9 @@ const translations = {
         description: 'Description',
         editing: 'Editing...',
         overrideSuccess: 'Value updated successfully!',
-        overrideError: 'Error updating value.'
+        overrideError: 'Error updating value.',
+        clearEdits: 'Clear Edits',
+        confirmClear: 'Are you sure you want to clear all manual edits?'
     }
 };
 
@@ -136,6 +140,22 @@ export default function PnLTable({ language }: PnLProps) {
                     >
                         {isEditMode ? <Save size={18} /> : <Edit2 size={18} />}
                         {isEditMode ? t.save : t.editMode}
+                    </button>
+                    <button
+                        onClick={async () => {
+                            if (confirm(t.confirmClear || 'Clear all manual edits?')) {
+                                try {
+                                    await api.delete('/api/pnl/overrides');
+                                    fetchData();
+                                } catch (e) {
+                                    alert('Error clearing edits');
+                                }
+                            }
+                        }}
+                        className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-colors flex items-center gap-2"
+                    >
+                        <Trash2 size={18} />
+                        {t.clearEdits || 'Clear Edits'}
                     </button>
                     <button
                         onClick={handleExport}

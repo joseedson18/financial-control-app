@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import api from '../api';
 import StatCard from './StatCard';
 import AiInsights from './AiInsights';
-import { Printer, TrendingUp, DollarSign, Activity, PieChart as PieChartIcon } from 'lucide-react';
+import { Printer, TrendingUp, DollarSign, Activity, PieChart as PieChartIcon, Trash2 } from 'lucide-react';
 
 interface DashboardProps {
     language: 'pt' | 'en';
@@ -35,7 +35,9 @@ const translations = {
         marketing: 'Marketing',
         wages: 'Salários',
         tech: 'Tecnologia',
-        other: 'Outros'
+        other: 'Outros',
+        clearData: 'Limpar Dados',
+        confirmClear: 'Tem certeza que deseja apagar todos os dados?'
     },
     en: {
         loading: 'Loading dashboard data...',
@@ -56,7 +58,9 @@ const translations = {
         marketing: 'Marketing',
         wages: 'Wages',
         tech: 'Tech',
-        other: 'Other'
+        other: 'Other',
+        clearData: 'Clear Data',
+        confirmClear: 'Are you sure you want to clear all data?'
     }
 };
 
@@ -201,7 +205,22 @@ export default function Dashboard({ language }: DashboardProps) {
 
     return (
         <div className="space-y-6 print:space-y-4">
-            <div className="flex justify-end print:hidden">
+            <div className="flex justify-end gap-3 print:hidden">
+                <button
+                    onClick={async () => {
+                        if (confirm(t.confirmClear || 'Are you sure you want to clear all data?')) {
+                            try {
+                                await api.delete('/api/data');
+                                window.location.reload();
+                            } catch (e) {
+                                alert('Error clearing data');
+                            }
+                        }
+                    }}
+                    className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-colors flex items-center gap-2"
+                >
+                    <Trash2 size={18} /> {t.clearData || 'Clear Data'}
+                </button>
                 <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
                     <Printer size={18} /> {t.exportPdf}
                 </button>

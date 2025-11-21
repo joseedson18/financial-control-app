@@ -37,8 +37,9 @@ def get_ai_insights(request_data: dict = Body(...)):
     api_key = request_data.get("api_key")
     dashboard_data = request_data.get("data")
     
-    if not api_key:
-        raise HTTPException(status_code=400, detail="API Key is required")
+    # API Key is now optional in the request, handled by backend constant
+    # if not api_key:
+    #    raise HTTPException(status_code=400, detail="API Key is required")
         
     if not dashboard_data:
         raise HTTPException(status_code=400, detail="Dashboard data is required")
@@ -172,6 +173,14 @@ def update_pnl_override(data: dict):
     save_data()
     return {"message": "Override saved"}
 
+@app.delete("/api/pnl/overrides")
+def clear_pnl_overrides():
+    """Clear all P&L overrides"""
+    global current_overrides
+    current_overrides = {}
+    save_data()
+    return {"message": "All overrides cleared"}
+
 @app.get("/status")
 def get_status():
     """Health check endpoint that returns data availability status"""
@@ -204,6 +213,18 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.delete("/api/data")
+def clear_data():
+    """Clear all uploaded data"""
+    global current_df
+    current_df = None
+    # Also clear metadata
+    if CSV_PATH.exists():
+        os.remove(CSV_PATH)
+    if METADATA_PATH.exists():
+        os.remove(METADATA_PATH)
+    return {"message": "Data cleared successfully"}
+
 @app.get("/mappings", response_model=List[MappingItem])
 def get_mappings():
     return current_mappings
@@ -214,6 +235,14 @@ def update_mappings(update: MappingUpdate):
     current_mappings = update.mappings
     save_data()  # Persist to disk
     return {"message": "Mappings updated"}
+
+@app.delete("/api/mappings")
+def reset_mappings():
+    """Reset mappings to default"""
+    global current_mappings
+    current_mappings = get_initial_mappings()
+    save_data()
+    return {"message": "Mappings reset to default"}
 
 @app.get("/pnl", response_model=PnLResponse)
 def get_pnl():

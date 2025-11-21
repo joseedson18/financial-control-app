@@ -213,6 +213,13 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="fixed bottom-0 right-0 p-2 pointer-events-none z-50">
+        <p className="text-[7px] text-gray-400 font-light">
+          Ferramenta construída pelo Especialista Financeiro Matheus Castro. Todos os direitos reservados ©
+        </p>
+      </footer>
     </div>
   );
 }

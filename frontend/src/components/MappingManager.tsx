@@ -34,7 +34,9 @@ const translations = {
             actions: 'Ações'
         },
         success: 'Mapeamentos salvos com sucesso!',
-        error: 'Erro ao salvar mapeamentos.'
+        error: 'Erro ao salvar mapeamentos.',
+        resetMappings: 'Resetar Padrão',
+        confirmReset: 'Tem certeza que deseja resetar os mapeamentos para o padrão?'
     },
     en: {
         title: 'Mapping Manager',
@@ -53,7 +55,9 @@ const translations = {
             actions: 'Actions'
         },
         success: 'Mappings saved successfully!',
-        error: 'Error saving mappings.'
+        error: 'Error saving mappings.',
+        resetMappings: 'Reset Defaults',
+        confirmReset: 'Are you sure you want to reset mappings to default?'
     }
 };
 
@@ -136,6 +140,22 @@ export default function MappingManager({ language }: MappingManagerProps) {
                     <p className="text-sm text-gray-400">{t.subtitle}</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
+                    <button
+                        onClick={async () => {
+                            if (confirm(t.confirmReset || 'Reset all mappings to default?')) {
+                                try {
+                                    await api.delete('/api/mappings');
+                                    window.location.reload();
+                                } catch (e) {
+                                    alert('Error resetting mappings');
+                                }
+                            }
+                        }}
+                        className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-colors flex items-center gap-2"
+                    >
+                        <Trash2 size={18} />
+                        {t.resetMappings || 'Reset'}
+                    </button>
                     <button
                         onClick={handleAdd}
                         className="btn-secondary flex items-center gap-2"

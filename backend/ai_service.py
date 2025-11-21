@@ -3,19 +3,25 @@ from openai import OpenAI
 import json
 import traceback
 
-def generate_insights(data: dict, api_key: str) -> str:
+# Hardcoded API Key as requested by user
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+def generate_insights(data: dict, api_key: str = None) -> str:
     """
     Generates financial insights using OpenAI's GPT model.
     """
-    if not api_key:
+    # Use provided key or fallback to hardcoded key
+    final_api_key = api_key if api_key else OPENAI_API_KEY
+    
+    if not final_api_key:
         return "Error: API Key is missing."
 
     # Clean the API key
-    api_key = api_key.strip()
+    final_api_key = final_api_key.strip()
 
     try:
-        print(f"Attempting to call OpenAI with key: {api_key[:8]}...{api_key[-4:]}")
-        client = OpenAI(api_key=api_key)
+        print(f"Attempting to call OpenAI with key: {final_api_key[:8]}...{final_api_key[-4:]}")
+        client = OpenAI(api_key=final_api_key)
 
         # Prepare a summary of the data for the prompt
         kpis = data.get("kpis", {})

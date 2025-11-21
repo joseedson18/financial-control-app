@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Brain, Sparkles, Lock, Send, Loader2 } from 'lucide-react';
+import { Brain, Sparkles, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface AiInsightsProps {
@@ -32,37 +32,26 @@ const translations = {
 };
 
 const AiInsights: React.FC<AiInsightsProps> = ({ data, language }) => {
-    const [apiKey, setApiKey] = useState('');
     const [insights, setInsights] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const t = translations[language];
 
-    // Load saved API key from localStorage on component mount
+    // Auto-generate insights when data changes
     useEffect(() => {
-        const savedKey = localStorage.getItem('openai_api_key');
-        if (savedKey) {
-            setApiKey(savedKey);
+        if (data && !insights && !loading) {
+            handleGenerate();
         }
-    }, []);
-
-    // Persist API key to localStorage whenever it changes
-    useEffect(() => {
-        if (apiKey) {
-            localStorage.setItem('openai_api_key', apiKey);
-        }
-    }, [apiKey]);
+    }, [data]);
 
     const handleGenerate = async () => {
-        if (!apiKey) return;
-
         setLoading(true);
         setError('');
         setInsights('');
 
         try {
+            // API Key is handled by backend now
             const response = await api.post('/api/insights', {
-                api_key: apiKey,
                 data: data
             });
             setInsights(response.data.insights);
@@ -93,39 +82,17 @@ const AiInsights: React.FC<AiInsightsProps> = ({ data, language }) => {
                     </div>
                 </div>
 
-                {!insights && (
-                    <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 backdrop-blur-sm mb-6">
-                        <div className="flex flex-col gap-4">
-                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                                <Lock size={14} className="text-gray-400" />
-                                OpenAI API Key
-                            </label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="password"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder={t.placeholder}
-                                    className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-                                />
-                                <button
-                                    onClick={handleGenerate}
-                                    disabled={!apiKey || loading}
-                                    className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all
-                                        ${!apiKey || loading
-                                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                                            : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-purple-500/25 active:scale-95'}
-                                    `}
-                                >
-                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                                    {loading ? t.analyzing : t.generate}
-                                </button>
-                            </div>
-                            <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <Lock size={10} /> {t.disclaimer}
-                            </p>
-                            {error && <p className="text-red-400 text-sm">{error}</p>}
-                        </div>
+                {loading && (
+                    <div className="flex items-center justify-center p-8 text-purple-400 animate-pulse gap-2">
+                        <Loader2 size={24} className="animate-spin" />
+                        <span>{t.analyzing}</span>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm mb-4">
+                        {error}
+                        <button onClick={handleGenerate} className="ml-2 underline hover:text-red-300">Retry</button>
                     </div>
                 )}
 
@@ -135,10 +102,10 @@ const AiInsights: React.FC<AiInsightsProps> = ({ data, language }) => {
                             <ReactMarkdown>{insights}</ReactMarkdown>
                         </div>
                         <button
-                            onClick={() => setInsights('')}
-                            className="mt-4 text-sm text-gray-400 hover:text-white transition-colors underline"
+                            onClick={handleGenerate}
+                            className="mt-4 text-sm text-gray-400 hover:text-white transition-colors underline flex items-center gap-1"
                         >
-                            Generate New Analysis
+                            <Sparkles size={12} /> Regenerate Analysis
                         </button>
                     </div>
                 )}

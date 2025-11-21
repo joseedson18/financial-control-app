@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import api from '../api';
-import { Upload, CheckCircle, AlertCircle, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, FileSpreadsheet, Loader2, Trash2 } from 'lucide-react';
 
 interface FileUploadProps {
     language: 'pt' | 'en';
@@ -18,7 +18,9 @@ const translations = {
         success: 'Registros processados com sucesso.',
         error: 'Falha no upload:',
         serverError: 'Falha no upload: Não foi possível conectar ao servidor.',
-        unknownError: 'Erro desconhecido'
+        unknownError: 'Erro desconhecido',
+        clearData: 'Limpar Todos os Dados',
+        confirmClear: 'Tem certeza que deseja apagar todos os dados?'
     },
     en: {
         title: 'Upload Financial Data',
@@ -31,7 +33,9 @@ const translations = {
         success: 'Successfully processed records.',
         error: 'Upload failed:',
         serverError: 'Upload failed: Cannot connect to server.',
-        unknownError: 'Unknown error occurred'
+        unknownError: 'Unknown error occurred',
+        clearData: 'Clear All Data',
+        confirmClear: 'Are you sure you want to clear all data?'
     }
 };
 
@@ -169,6 +173,24 @@ export default function FileUpload({ language }: FileUploadProps) {
                             <span>{t.processBtn}</span>
                         </>
                     )}
+                </button>
+
+                {/* Clear Data Button */}
+                <button
+                    onClick={async () => {
+                        if (confirm(t.confirmClear || 'Are you sure you want to clear all data?')) {
+                            try {
+                                await api.delete('/api/data');
+                                window.location.reload();
+                            } catch (e) {
+                                alert('Error clearing data');
+                            }
+                        }
+                    }}
+                    className="w-full mt-4 py-3 px-6 rounded-xl font-semibold text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-all flex items-center justify-center gap-2"
+                >
+                    <Trash2 size={20} />
+                    <span>{t.clearData || 'Clear Data'}</span>
                 </button>
 
                 {/* Status Message */}
