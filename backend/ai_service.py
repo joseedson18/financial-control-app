@@ -1,6 +1,7 @@
 import os
 from openai import OpenAI
 import json
+import traceback
 
 def generate_insights(data: dict, api_key: str) -> str:
     """
@@ -9,7 +10,11 @@ def generate_insights(data: dict, api_key: str) -> str:
     if not api_key:
         return "Error: API Key is missing."
 
+    # Clean the API key
+    api_key = api_key.strip()
+
     try:
+        print(f"Attempting to call OpenAI with key: {api_key[:8]}...{api_key[-4:]}")
         client = OpenAI(api_key=api_key)
 
         # Prepare a summary of the data for the prompt
@@ -41,16 +46,49 @@ def generate_insights(data: dict, api_key: str) -> str:
         Format the output in Markdown. Be professional but direct.
         """
 
-        response = client.chat.completions.create(
-            model="gpt-4o", # Using a high-quality model (user mentioned GPT-5, but 4o is current standard/placeholder)
-            messages=[
-                {"role": "system", "content": "You are a helpful and critical financial assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-        )
+        # List of models to try in order of preference
+        models_to_try = ["gpt-5.1", "gpt-5", "gpt-5-nano", "gpt5nano"]
+        
+        last_exception = None
+        
+        print("Sending request to OpenAI...")
+        
+        for model in models_to_try:
+            try:
+                print(f"Attempting with model: {model}")
+                response = client.chat.completions.create(
+                    model=model, 
+                    messages=[
+                        {"role": "system", "content": "You are a helpful and critical financial assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                )
+                print(f"✅ Success with model: {model}")
+                return response.choices[0].message.content
+                
+            except Exception as e:
+                print(f"⚠️ Failed with model {model}: {str(e)}")
+                last_exception = e
+                # If it's an auth error (incorrect key), no point trying other models
+                if "Incorrect API key" in str(e) or "quota" in str(e).lower():
+                    raise e
+                continue
 
-        return response.choices[0].message.content
-
+        # If we get here, all models failed
+        if last_exception:
+            raise last_exception
+            
     except Exception as e:
-        return f"Error generating insights: {str(e)}"
+        print(f"❌ Error generating insights: {str(e)}")
+        traceback.print_exc()
+        
+        error_msg = str(e)
+        if "Incorrect API key" in error_msg:
+            return "Error: The provided API key is incorrect. Please check your OpenAI dashboard."
+        elif "You exceeded your current quota" in error_msg:
+            return "Error: You have exceeded your OpenAI API quota. Please check your billing details."
+        elif "The model" in error_msg and "does not exist" in error_msg:
+            return f"Error: None of the requested models ({', '.join(models_to_try)}) are available for your API key. Please check your access."
+        else:
+            return f"Error generating insights: {error_msg}"
