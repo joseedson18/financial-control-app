@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { Brain, Sparkles, Lock, Send, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -37,6 +37,21 @@ const AiInsights: React.FC<AiInsightsProps> = ({ data, language }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const t = translations[language];
+
+    // Load saved API key from localStorage on component mount
+    useEffect(() => {
+        const savedKey = localStorage.getItem('openai_api_key');
+        if (savedKey) {
+            setApiKey(savedKey);
+        }
+    }, []);
+
+    // Persist API key to localStorage whenever it changes
+    useEffect(() => {
+        if (apiKey) {
+            localStorage.setItem('openai_api_key', apiKey);
+        }
+    }, [apiKey]);
 
     const handleGenerate = async () => {
         if (!apiKey) return;

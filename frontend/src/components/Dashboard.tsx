@@ -204,8 +204,8 @@ export default function Dashboard({ language }: DashboardProps) {
                                 <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Legend wrapperStyle={{ color: '#d1d5db' }} />
-                                <Bar dataKey="revenue" name={t.rev} fill="#06b6d4" radius={[8, 8, 0, 0]} />
-                                <Bar dataKey="costs" name={t.cost} fill="#ef4444" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="revenue" name={t.rev} fill={COLORS.revenue} radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="costs" name={t.cost} fill={COLORS.cost} radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
