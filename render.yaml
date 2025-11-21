@@ -10,6 +10,11 @@ services:
       - key: FRONTEND_URL
         value: https://financial-control-appfinancial-control.onrender.com
         # Update this after deploying the frontend
+    # Persistent disk for data storage
+    disk:
+      name: data-storage
+      mountPath: /app/data
+      sizeGB: 1
 
   # Frontend Service (React/Vite)
   - type: web
