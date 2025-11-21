@@ -6,7 +6,7 @@ import pandas as pd
 from models import MappingItem, MappingUpdate, DashboardData, PnLResponse
 from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data
 from ai_service import generate_insights
-from auth import Token, authenticate_user, create_access_token, get_current_user, USERS_DB, verify_password, get_password_hash
+from auth import Token, create_access_token, get_current_user, USERS_DB, verify_password, get_password_hash
 from datetime import timedelta
 
 import os

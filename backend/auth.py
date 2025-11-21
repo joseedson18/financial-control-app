@@ -29,8 +29,8 @@ USERS_DB = {
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 class Token(BaseModel):
-    access_token: string
-    token_type: string
+    access_token: str
+    token_type: str
 
 class TokenData(BaseModel):
     username: Optional[str] = None
