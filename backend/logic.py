@@ -135,26 +135,45 @@ def get_initial_mappings() -> List[MappingItem]:
         ))
     return mappings
 
-def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict[str, Dict[str, float]] = None) -> PnLResponse:
+def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict[str, Dict[str, float]] = None, start_date: str = None, end_date: str = None) -> PnLResponse:
     """
     Calculate P&L based on dataframe and mappings.
+    Optionally filter by date range.
+    
+    Args:
+        df: DataFrame with financial data
+        mappings: List of cost center mappings
+        overrides: Manual cell overrides
+        start_date: Optional start date in YYYY-MM-DD format
+        end_date: Optional end date in YYYY-MM-DD format
     """
     if df is None:
         return PnLResponse(headers=[], rows=[])
+    
+    # Apply date filter if provided
+    filtered_df = df.copy()
+    if start_date or end_date:
+        if start_date:
+            start = pd.to_datetime(start_date)
+            filtered_df = filtered_df[filtered_df['Data de competência'] >= start]
+        if end_date:
+            end = pd.to_datetime(end_date)
+            filtered_df = filtered_df[filtered_df['Data de competência'] <= end]
 
-    months = sorted(df['Mes_Competencia'].dropna().unique())
+    # Calculate months from filtered data
+    months = sorted(filtered_df['Mes_Competencia'].dropna().unique())
     month_strs = [str(m) for m in months]
     
     # Helper to sum values based on mapping
     def get_value(mapping_item: MappingItem, month):
         mask = (
-            (df['Mes_Competencia'] == month) &
-            (df['Centro de Custo 1'] == mapping_item.centro_custo)
+            (filtered_df['Mes_Competencia'] == month) &
+            (filtered_df['Centro de Custo 1'] == mapping_item.centro_custo)
         )
         if mapping_item.fornecedor_cliente != "Diversos":
-             mask &= (df['Nome do fornecedor/cliente'].astype(str).str.contains(mapping_item.fornecedor_cliente, case=False, na=False))
+             mask &= (filtered_df['Nome do fornecedor/cliente'].astype(str).str.contains(mapping_item.fornecedor_cliente, case=False, na=False))
         
-        return df[mask]['Valor_Num'].sum()
+        return filtered_df[mask]['Valor_Num'].sum()
 
     # Initialize data structure for calculations
     # We'll use a dictionary to store values for each line number

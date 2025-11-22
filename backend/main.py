@@ -250,7 +250,11 @@ def reset_mappings(current_user: dict = Depends(get_current_user)):
     return {"message": "Mappings reset to default"}
 
 @app.get("/pnl", response_model=PnLResponse)
-def get_pnl(current_user: dict = Depends(get_current_user)):
+def get_pnl(
+    start_date: str = None, 
+    end_date: str = None,
+    current_user: dict = Depends(get_current_user)
+):
     global current_df, current_overrides
     
     # Lazy load if data is missing but might exist on disk
@@ -262,7 +266,7 @@ def get_pnl(current_user: dict = Depends(get_current_user)):
         # Return empty structure if no data
         return PnLResponse(headers=[], rows=[])
     
-    return calculate_pnl(current_df, current_mappings, current_overrides)
+    return calculate_pnl(current_df, current_mappings, current_overrides, start_date, end_date)
 
 @app.get("/dashboard", response_model=DashboardData)
 def get_dashboard(current_user: dict = Depends(get_current_user)):
