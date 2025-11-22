@@ -243,11 +243,13 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     calculated_lines = {}
     
     for m in month_strs:
-        # Raw aggregates
+        # Raw aggregates from mapped lines
+        # Revenues are POSITIVE, Expenses are NEGATIVE in the CSV
         google_rev = line_values[25][m] + line_values[26][m] + line_values[28][m] # Sum all Google lines
         apple_rev = line_values[33][m] + line_values[34][m] + line_values[36][m] # Sum all Apple lines
         invest_income = line_values[38][m]
         
+        # COGS items (these come as NEGATIVE from CSV)
         cogs_aws = line_values[43][m]
         cogs_cloudflare = line_values[44][m]
         cogs_heroku = line_values[45][m]
@@ -255,47 +257,60 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         cogs_mailgun = line_values[47][m]
         cogs_ses = line_values[48][m]
         
+        # Operating expenses (these come as NEGATIVE from CSV)
         marketing = line_values[56][m]
         wages = line_values[64][m]
         tech_support = line_values[68][m] + line_values[65][m] # Adobe + Diversos
-        
         other_expenses = line_values[90][m]
         
-        # Calculations
+        # ============================================
+        # FINANCIAL CALCULATIONS WITH CORRECT SIGNS
+        # ============================================
         
-        # 1. Revenue
-        revenue_no_tax = google_rev + apple_rev
-        total_revenue = revenue_no_tax + invest_income
+        # 1. REVENUE (should be positive)
+        revenue_no_tax = google_rev + apple_rev  # Both positive
+        total_revenue = revenue_no_tax + invest_income  # All positive
         
-        # 2. COGS
-        # Payment Processing = 17.65% of Revenue no Tax
-        payment_processing = revenue_no_tax * 0.1765 * -1 # Expense is negative
+        # 2. COST OF REVENUE (COGS)
+        # Payment Processing = 17.65% of Revenue no Tax (this is a cost, so negative)
+        payment_processing_cost = revenue_no_tax * 0.1765
         
-        cogs_total = cogs_aws + cogs_cloudflare + cogs_heroku + cogs_iaphub + cogs_mailgun + cogs_ses
+        # COGS from CSV (already negative, convert to positive for calculation)
+        cogs_sum = abs(cogs_aws + cogs_cloudflare + cogs_heroku + cogs_iaphub + cogs_mailgun + cogs_ses)
         
-        cost_of_revenue = payment_processing + cogs_total
+        # Total Cost of Revenue (as positive value)
+        total_cost_of_revenue = payment_processing_cost + cogs_sum
         
-        # 3. Gross Profit
-        gross_profit = total_revenue + cost_of_revenue # cost is negative
+        # 3. GROSS PROFIT = Revenue - Cost of Revenue
+        gross_profit = total_revenue - total_cost_of_revenue
         
-        # 4. OpEx
-        sga = marketing + wages + tech_support
-        opex = sga + other_expenses
+        # 4. OPERATING EXPENSES
+        # Convert all negative expenses to positive for calculation
+        marketing_abs = abs(marketing)
+        wages_abs = abs(wages)
+        tech_support_abs = abs(tech_support)
+        other_expenses_abs = abs(other_expenses)
         
-        # 5. EBITDA
-        ebitda = gross_profit + opex # opex is negative
+        # Total SG&A and OpEx (as positive values)
+        sga_total = marketing_abs + wages_abs + tech_support_abs
+        total_opex = sga_total + other_expenses_abs
         
-        # Store calculated values
-        line_values[100][m] = total_revenue # Revenue
-        line_values[101][m] = revenue_no_tax
-        line_values[102][m] = payment_processing
-        line_values[103][m] = cogs_total
-        line_values[104][m] = gross_profit
-        line_values[105][m] = sga
-        line_values[106][m] = ebitda
-        line_values[107][m] = marketing
-        line_values[108][m] = wages
-        line_values[109][m] = tech_support
+        # 5. EBITDA = Gross Profit - Operating Expenses
+        ebitda = gross_profit - total_opex
+        
+        # Store calculated values for P&L display
+        # Store revenues as positive, costs/expenses as negative for proper P&L formatting
+        line_values[100][m] = total_revenue  # Total Revenue (positive)
+        line_values[101][m] = revenue_no_tax  # Revenue no Tax (positive)
+        line_values[102][m] = -payment_processing_cost  # Payment Processing (negative for display)
+        line_values[103][m] = -cogs_sum  # COGS Total (negative for display)
+        line_values[104][m] = gross_profit  # Gross Profit
+        line_values[105][m] = -sga_total  # SG&A (negative for display)
+        line_values[106][m] = ebitda  # EBITDA
+        line_values[107][m] = -marketing_abs  # Marketing (negative for display)
+        line_values[108][m] = -wages_abs  # Wages (negative for display)
+        line_values[109][m] = -tech_support_abs  # Tech Support (negative for display)
+        line_values[110][m] = -other_expenses_abs  # Other Expenses (negative for display)
         
     # APPLY OVERRIDES
     if overrides:
@@ -354,11 +369,11 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     
     add_row(7, "(=) LUCRO BRUTO", line_values[104], is_total=True)
     
-    add_row(8, "(-) DESPESAS OPERACIONAIS", {m: line_values[105][m] + line_values[90][m] for m in month_strs}, is_header=True)
+    add_row(8, "(-) DESPESAS OPERACIONAIS", {m: line_values[105][m] + line_values[110][m] for m in month_strs}, is_header=True)
     add_row(9, "Marketing", line_values[107])
     add_row(10, "Salários (Wages)", line_values[108])
     add_row(11, "Tech Support & Services", line_values[109])
-    add_row(12, "Outras Despesas", line_values[90])
+    add_row(12, "Outras Despesas", line_values[110])
     
     add_row(13, "(=) EBITDA", line_values[106], is_total=True)
     
@@ -413,17 +428,25 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
             latest_month = m
             break
     
-    # Helper to find row value
+    # Helper to find row value by line number
+    def get_val_by_line(line_num, month):
+        for row in pnl.rows:
+            if row.line_number == line_num:
+                return row.values.get(month, 0.0)
+        return 0.0
+    
+    # Helper to find row value by description start
     def get_val(desc_start, month):
         for row in pnl.rows:
             if row.description.startswith(desc_start):
                 return row.values.get(month, 0.0)
         return 0.0
 
-    revenue = get_val("RECEITA", latest_month)
-    ebitda = get_val("(=) EBITDA", latest_month)
-    gross_profit = get_val("(=) LUCRO", latest_month)
-    net_result = get_val("(=) RESULTADO", latest_month)
+    # Extract KPIs from latest month
+    revenue = get_val_by_line(1, latest_month)  # RECEITA OPERACIONAL BRUTA
+    ebitda = get_val_by_line(13, latest_month)  # EBITDA
+    gross_profit = get_val_by_line(7, latest_month)  # LUCRO BRUTO
+    net_result = ebitda  # For now, net result = EBITDA (no depreciation/interest/taxes yet)
     
     # KPIs
     kpis = {
@@ -432,29 +455,37 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
         "ebitda": ebitda,
         "ebitda_margin": ebitda / revenue if revenue else 0,
         "gross_margin": gross_profit / revenue if revenue else 0,
-        "nau": 0, # Placeholder
-        "cpa": 0  # Placeholder
+        "nau": 0,  # Placeholder
+        "cpa": 0   # Placeholder
     }
     
     # Monthly Data for Charts
     monthly_data = []
     for m in pnl.headers:
+        # Get values for this month
+        month_revenue = get_val_by_line(1, m)
+        month_ebitda = get_val_by_line(13, m)
+        
+        # Costs and expenses are stored as negative, convert to positive for charts
+        month_cogs = abs(get_val_by_line(4, m))  # (-) CUSTOS DIRETOS total
+        month_opex = abs(get_val_by_line(8, m))  # (-) DESPESAS OPERACIONAIS total
+        
         monthly_data.append({
             "month": m,
-            "revenue": get_val("RECEITA", m),
-            "ebitda": get_val("(=) EBITDA", m),
-            "costs": get_val("(-) CUSTOS", m) * -1, # Make positive for chart
-            "expenses": get_val("(-) DESPESAS", m) * -1
+            "revenue": month_revenue,
+            "ebitda": month_ebitda,
+            "costs": month_cogs,  # Positive for chart display
+            "expenses": month_opex  # Positive for chart display
         })
         
-    # Cost Structure (Latest Month)
+    # Cost Structure (Latest Month) - all as positive values
     cost_structure = {
-        "payment_processing": abs(get_val("Payment", latest_month)),
-        "cogs": abs(get_val("COGS", latest_month)),
-        "marketing": abs(get_val("Marketing", latest_month)),
-        "wages": abs(get_val("Salários", latest_month)),
-        "tech": abs(get_val("Tech", latest_month)),
-        "other": abs(get_val("Outras", latest_month))
+        "payment_processing": abs(get_val_by_line(5, latest_month)),  # Payment Processing
+        "cogs": abs(get_val_by_line(6, latest_month)),  # COGS (Web Services)
+        "marketing": abs(get_val_by_line(9, latest_month)),  # Marketing
+        "wages": abs(get_val_by_line(10, latest_month)),  # Salários
+        "tech": abs(get_val_by_line(11, latest_month)),  # Tech Support
+        "other": abs(get_val_by_line(12, latest_month))  # Outras Despesas
     }
     
     return DashboardData(kpis=kpis, monthly_data=monthly_data, cost_structure=cost_structure)
