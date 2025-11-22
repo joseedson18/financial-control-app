@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell, Sector } from 'recharts';
 import api from '../api';
 import StatCard from './StatCard';
-import AiInsights, { newLocal } from './AiInsights';
+import AiInsights from './AiInsights';
+import FormulaModal from './FormulaModal';
+import { getFormulaBreakdown } from '../utils/formulaBreakdown';
 import { TrendingUp, DollarSign, Activity, PieChart as PieChartIcon, Trash2, Download } from 'lucide-react';
 import { GlassCard } from './ui/GlassCard';
 import { motion } from 'framer-motion';
@@ -126,7 +128,25 @@ export default function Dashboard({ language }: DashboardProps) {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeIndex, setActiveIndex] = useState(0);
+    const [formulaModal, setFormulaModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        value: number;
+        breakdown: any[];
+        matlabFormula: string;
+    } | null>(null);
     const t = translations[language];
+
+    const showFormula = (type: string) => {
+        if (!data) return;
+        const breakdown = getFormulaBreakdown(type, data, language);
+        if (breakdown) {
+            setFormulaModal({
+                isOpen: true,
+                ...breakdown
+            });
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -257,34 +277,42 @@ export default function Dashboard({ language }: DashboardProps) {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    title={t.revenue}
-                    value={formatCurrency(data.kpis.total_revenue)}
-                    icon={DollarSign}
-                    gradient="cyan"
-                    trend={revenueTrend}
-                />
-                <StatCard
-                    title={t.netResult}
-                    value={formatCurrency(data.kpis.net_result)}
-                    icon={Activity}
-                    gradient="emerald"
-                    trend={profitTrend}
-                />
-                <StatCard
-                    title={t.grossProfit}
-                    value={formatPercent(data.kpis.gross_margin)}
-                    icon={TrendingUp}
-                    gradient="purple"
-                    trend={marginTrend}
-                />
-                <StatCard
-                    title={t.ebitda}
-                    value={formatCurrency(data.kpis.ebitda)}
-                    icon={PieChartIcon}
-                    gradient="amber"
-                    trend={ebitdaTrend}
-                />
+                <div onClick={() => showFormula('total_revenue')} className="cursor-pointer transition-all hover:scale-105">
+                    <StatCard
+                        title={t.revenue}
+                        value={formatCurrency(data.kpis.total_revenue)}
+                        icon={DollarSign}
+                        gradient="cyan"
+                        trend={revenueTrend}
+                    />
+                </div>
+                <div onClick={() => showFormula('net_result')} className="cursor-pointer transition-all hover:scale-105">
+                    <StatCard
+                        title={t.netResult}
+                        value={formatCurrency(data.kpis.net_result)}
+                        icon={Activity}
+                        gradient="emerald"
+                        trend={profitTrend}
+                    />
+                </div>
+                <div onClick={() => showFormula('gross_profit')} className="cursor-pointer transition-all hover:scale-105">
+                    <StatCard
+                        title={t.grossProfit}
+                        value={formatPercent(data.kpis.gross_margin)}
+                        icon={TrendingUp}
+                        gradient="purple"
+                        trend={marginTrend}
+                    />
+                </div>
+                <div onClick={() => showFormula('ebitda')} className="cursor-pointer transition-all hover:scale-105">
+                    <StatCard
+                        title={t.ebitda}
+                        value={formatCurrency(data.kpis.ebitda)}
+                        icon={PieChartIcon}
+                        gradient="amber"
+                        trend={ebitdaTrend}
+                    />
+                </div>
             </div>
 
             {/* Charts Row 1 */}
@@ -386,34 +414,19 @@ export default function Dashboard({ language }: DashboardProps) {
                     </ResponsiveContainer>
                 </GlassCard>
             </div>
+
+            {/* Formula Modal */}
+            {formulaModal && (
+                <FormulaModal
+                    isOpen={formulaModal.isOpen}
+                    onClose={() => setFormulaModal(null)}
+                    title={formulaModal.title}
+                    value={formulaModal.value}
+                    breakdown={formulaModal.breakdown}
+                    matlabFormula={formulaModal.matlabFormula}
+                    language={language}
+                />
+            )}
         </motion.div>
     );
-} export const translations = {
-    pt: {
-        title: 'Insights de IA',
-        subtitle: 'Análise financeira inteligente com GPT-4',
-        placeholder: newLocal,
-        generate: 'Gerar Análise',
-        analyzing: 'Analisando...',
-        disclaimer: 'Sua chave é salva localmente no seu navegador.',
-        error: 'Erro ao gerar insights. Verifique sua chave.',
-        empty: 'Nenhum insight gerado ainda.',
-        configure: 'Configurar Chave',
-        save: 'Salvar',
-        cancel: 'Cancelar'
-    },
-    en: {
-        title: 'AI Insights',
-        subtitle: 'Smart financial analysis with GPT-4',
-        placeholder: 'Enter your OpenAI API Key (sk-...)',
-        generate: 'Generate Analysis',
-        analyzing: 'Analyzing...',
-        disclaimer: 'Your key is saved locally in your browser.',
-        error: 'Error generating insights. Check your key.',
-        empty: 'No insights generated yet.',
-        configure: 'Configure Key',
-        save: 'Save',
-        cancel: 'Cancel'
-    }
-};
-
+}

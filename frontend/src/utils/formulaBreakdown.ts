@@ -1,4 +1,22 @@
-import { DashboardData } from '../types';
+interface DashboardData {
+    kpis: {
+        total_revenue?: number;
+        gross_profit?: number;
+        ebitda?: number;
+        net_result?: number;
+        ebitda_margin?: number;
+        gross_margin?: number;
+    };
+    monthly_data?: any[];
+    cost_structure?: {
+        payment_processing?: number;
+        cogs?: number;
+        marketing?: number;
+        wages?: number;
+        tech?: number;
+        other?: number;
+    };
+}
 
 interface BreakdownStep {
     label: string;
@@ -17,8 +35,7 @@ interface FormulaBreakdown {
 export const getFormulaBreakdown = (
     type: string,
     data: DashboardData,
-    language: 'pt' | 'en' = 'pt',
-    month?: string
+    language: 'pt' | 'en' = 'pt'
 ): FormulaBreakdown | null => {
     const t = {
         pt: {

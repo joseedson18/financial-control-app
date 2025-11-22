@@ -102,7 +102,6 @@ export default function FormulaModal({
 
                         <div className="bg-slate-900 rounded-xl p-6 border border-slate-700 font-mono text-sm">
                             {breakdown.map((step, index) => {
-                                const isLastStep = index === breakdown.length - 1;
                                 const isResult = step.symbol === '=';
 
                                 return (
@@ -113,10 +112,10 @@ export default function FormulaModal({
                                         >
                                             <span
                                                 className={`flex-1 ${isResult
-                                                        ? 'text-emerald-400 font-bold'
-                                                        : step.isSubItem
-                                                            ? 'text-gray-400'
-                                                            : 'text-gray-300'
+                                                    ? 'text-emerald-400 font-bold'
+                                                    : step.isSubItem
+                                                        ? 'text-gray-400'
+                                                        : 'text-gray-300'
                                                     }`}
                                             >
                                                 {step.isSubItem && '└─ '}
@@ -125,20 +124,20 @@ export default function FormulaModal({
                                             </span>
                                             <span
                                                 className={`ml-4 mr-3 text-right min-w-[140px] ${isResult
-                                                        ? 'text-emerald-400 font-bold'
-                                                        : step.value < 0
-                                                            ? 'text-red-400'
-                                                            : 'text-blue-400'
+                                                    ? 'text-emerald-400 font-bold'
+                                                    : step.value < 0
+                                                        ? 'text-red-400'
+                                                        : 'text-blue-400'
                                                     }`}
                                             >
                                                 {formatCurrency(Math.abs(step.value))}
                                             </span>
                                             <span
                                                 className={`w-6 text-center ${isResult
-                                                        ? 'text-emerald-400 font-bold text-lg'
-                                                        : step.symbol === '-'
-                                                            ? 'text-red-400'
-                                                            : 'text-gray-500'
+                                                    ? 'text-emerald-400 font-bold text-lg'
+                                                    : step.symbol === '-'
+                                                        ? 'text-red-400'
+                                                        : 'text-gray-500'
                                                     }`}
                                             >
                                                 {step.symbol || ''}
