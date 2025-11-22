@@ -334,6 +334,9 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         # 5. EBITDA = Gross Profit - Operating Expenses
         ebitda = gross_profit - total_opex
         
+        # 6. Net Result = EBITDA (no financial expenses or taxes yet)
+        net_result = ebitda  # TODO: Add financial expenses and taxes when available
+        
         # Store calculated values for P&L display
         # Store revenues as positive, costs/expenses as negative for proper P&L formatting
         line_values[100][m] = total_revenue  # Total Revenue (positive)
@@ -347,6 +350,7 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         line_values[108][m] = -wages_abs  # Wages (negative for display)
         line_values[109][m] = -tech_support_abs  # Tech Support (negative for display)
         line_values[110][m] = -other_expenses_abs  # Other Expenses (negative for display)
+        line_values[111][m] = net_result  # Net Result
         
     # APPLY OVERRIDES
     if overrides:
@@ -419,18 +423,10 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     for m in month_strs:
         # Get final values (potentially overridden)
         rev = 0
-        ebitda_val = 0
-        gross_val = 0
-        
-        # Find values in rows we just added
-        for r in rows:
-            if r.line_number == 1: rev = r.values[m]
-            if r.line_number == 13: ebitda_val = r.values[m]
-            if r.line_number == 7: gross_val = r.values[m]
-            
-        if rev != 0:
-            ebitda_margins[m] = ebitda_val / rev
-            gross_margins[m] = gross_val / rev
+        revenue = line_values[100][m]
+        if revenue and revenue != 0:
+            ebitda_margins[m] = (line_values[106][m] / revenue) * 100  # EBITDA %
+            gross_margins[m] = (line_values[104][m] / revenue) * 100   # Gross Margin %
         else:
             ebitda_margins[m] = 0.0
             gross_margins[m] = 0.0

@@ -1,24 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api';
 import { Brain, Sparkles, Loader2, Settings, Key } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { GlassCard } from './ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { translations } from './Dashboard';
 
 interface AiInsightsProps {
     data: any;
     language: 'pt' | 'en';
 }
 
-export const newLocal = 'Insira sua chave de API da OpenAI (sk-...)';
-function AiInsights({ data, language }) {
+const translations = {
+    pt: {
+        title: 'Análise de IA',
+        subtitle: 'Insights financeiros gerados por inteligência artificial',
+        placeholder: 'Cole sua chave de API da OpenAI aqui (opcional)',
+        generate: 'Gerar Insights',
+        analyzing: 'Analisando dados...',
+        disclaimer: 'Os insights são gerados por IA e devem ser revisados por um profissional.',
+        error: 'Erro ao gerar insights. Verifique sua chave de API.',
+        empty: 'Sem insights ainda. Clique em "Gerar Insights" para começar.',
+        configure: 'Configurar API Key',
+        save: 'Salvar',
+        cancel: 'Cancelar'
+    },
+    en: {
+        title: 'AI Insights',
+        subtitle: 'AI-powered financial analysis',
+        placeholder: 'Paste your OpenAI API key here (optional)',
+        generate: 'Generate Insights',
+        analyzing: 'Analyzing data...',
+        disclaimer: 'Insights are AI-generated and should be reviewed by a professional.',
+        error: 'Error generating insights. Check your API key.',
+        empty: 'No insights yet. Click "Generate Insights" to start.',
+        configure: 'Configure API Key',
+        save: 'Save',
+        cancel: 'Cancel'
+    }
+};
+
+export default function AiInsights({ data, language }: AiInsightsProps) {
+    const t = translations[language];
     const [insights, setInsights] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showSettings, setShowSettings] = useState(false);
     const [apiKey, setApiKey] = useState('');
-    const t = translations[language];
 
     useEffect(() => {
         const savedKey = localStorage.getItem('openai_api_key');
@@ -169,5 +196,3 @@ function AiInsights({ data, language }) {
         </GlassCard>
     );
 }
-
-export default AiInsights;
