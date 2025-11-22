@@ -1,5 +1,6 @@
-import { X, Calculator, Code } from 'lucide-react';
+import { X, Calculator, Code, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import TransactionList from './TransactionList';
 
 interface BreakdownStep {
     label: string;
@@ -8,13 +9,25 @@ interface BreakdownStep {
     isSubItem?: boolean;
 }
 
+interface Transaction {
+    date: string;
+    month: string;
+    centro_custo: string;
+    fornecedor: string;
+    descricao: string;
+    valor: number;
+    categoria: string;
+}
+
 interface FormulaModalProps {
     isOpen: boolean;
     onClose: () => void;
     title: string;
     value: number;
-    breakdown: BreakdownStep[];
-    matlabFormula: string;
+    breakdown?: BreakdownStep[];
+    matlabFormula?: string;
+    transactions?: Transaction[];  // NEW: transaction mode
+    showTransactions?: boolean;    // NEW: toggle mode
     language: 'pt' | 'en';
 }
 
@@ -52,6 +65,8 @@ export default function FormulaModal({
     value,
     breakdown,
     matlabFormula,
+    transactions,
+    showTransactions = false,
     language
 }: FormulaModalProps) {
     const t = translations[language];
@@ -93,74 +108,96 @@ export default function FormulaModal({
                         </button>
                     </div>
 
-                    {/* Calculation Breakdown */}
+                    {/* Calculation Breakdown OR Transactions */}
                     <div className="p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Calculator size={18} className="text-emerald-400" />
-                            <h3 className="text-lg font-semibold text-gray-200">{t.calculation}</h3>
-                        </div>
+                        {showTransactions && transactions ? (
+                            // Transaction Mode
+                            <div>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <FileText size={18} className="text-emerald-400" />
+                                    <h3 className="text-lg font-semibold text-gray-200">
+                                        {language === 'pt' ? 'Transações Individuais' : 'Individual Transactions'}
+                                    </h3>
+                                </div>
+                                <TransactionList
+                                    transactions={transactions}
+                                    total={value}
+                                    language={language}
+                                />
+                            </div>
+                        ) : breakdown ? (
+                            // Formula Breakdown Mode
+                            <>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Calculator size={18} className="text-emerald-400" />
+                                    <h3 className="text-lg font-semibold text-gray-200">{t.calculation}</h3>
+                                </div>
 
-                        <div className="bg-slate-900 rounded-xl p-6 border border-slate-700 font-mono text-sm">
-                            {breakdown.map((step, index) => {
-                                const isResult = step.symbol === '=';
+                                <div className="bg-slate-900 rounded-xl p-6 border border-slate-700 font-mono text-sm">
+                                    {breakdown.map((step, index) => {
+                                        const isResult = step.symbol === '=';
 
-                                return (
-                                    <div key={index}>
-                                        <div
-                                            className={`flex items-center justify-between py-2 ${step.isSubItem ? 'pl-6 text-gray-400' : ''
-                                                } ${isResult ? 'border-t-2 border-slate-600 mt-2 pt-4' : ''}`}
-                                        >
-                                            <span
-                                                className={`flex-1 ${isResult
-                                                    ? 'text-emerald-400 font-bold'
-                                                    : step.isSubItem
-                                                        ? 'text-gray-400'
-                                                        : 'text-gray-300'
-                                                    }`}
-                                            >
-                                                {step.isSubItem && '└─ '}
-                                                {step.label}
-                                                {step.label && !step.label.endsWith(':') && ':'}
-                                            </span>
-                                            <span
-                                                className={`ml-4 mr-3 text-right min-w-[140px] ${isResult
-                                                    ? 'text-emerald-400 font-bold'
-                                                    : step.value < 0
-                                                        ? 'text-red-400'
-                                                        : 'text-blue-400'
-                                                    }`}
-                                            >
-                                                {formatCurrency(Math.abs(step.value))}
-                                            </span>
-                                            <span
-                                                className={`w-6 text-center ${isResult
-                                                    ? 'text-emerald-400 font-bold text-lg'
-                                                    : step.symbol === '-'
-                                                        ? 'text-red-400'
-                                                        : 'text-gray-500'
-                                                    }`}
-                                            >
-                                                {step.symbol || ''}
-                                            </span>
+                                        return (
+                                            <div key={index}>
+                                                <div
+                                                    className={`flex items-center justify-between py-2 ${step.isSubItem ? 'pl-6 text-gray-400' : ''
+                                                        } ${isResult ? 'border-t-2 border-slate-600 mt-2 pt-4' : ''}`}
+                                                >
+                                                    <span
+                                                        className={`flex-1 ${isResult
+                                                            ? 'text-emerald-400 font-bold'
+                                                            : step.isSubItem
+                                                                ? 'text-gray-400'
+                                                                : 'text-gray-300'
+                                                            }`}
+                                                    >
+                                                        {step.isSubItem && '└─ '}
+                                                        {step.label}
+                                                        {step.label && !step.label.endsWith(':') && ':'}
+                                                    </span>
+                                                    <span
+                                                        className={`ml-4 mr-3 text-right min-w-[140px] ${isResult
+                                                            ? 'text-emerald-400 font-bold'
+                                                            : step.value < 0
+                                                                ? 'text-red-400'
+                                                                : 'text-blue-400'
+                                                            }`}
+                                                    >
+                                                        {formatCurrency(Math.abs(step.value))}
+                                                    </span>
+                                                    <span
+                                                        className={`w-6 text-center ${isResult
+                                                            ? 'text-emerald-400 font-bold text-lg'
+                                                            : step.symbol === '-'
+                                                                ? 'text-red-400'
+                                                                : 'text-gray-500'
+                                                            }`}
+                                                    >
+                                                        {step.symbol || ''}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* MATLAB Formula */}
+                                {matlabFormula && (
+                                    <div className="mt-6">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Code size={18} className="text-purple-400" />
+                                            <h3 className="text-lg font-semibold text-gray-200">{t.matlabFormula}</h3>
+                                        </div>
+
+                                        <div className="bg-slate-950 rounded-xl p-4 border border-purple-500/30">
+                                            <pre className="text-purple-300 font-mono text-sm overflow-x-auto whitespace-pre-wrap break-words">
+                                                {matlabFormula}
+                                            </pre>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* MATLAB Formula */}
-                        <div className="mt-6">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Code size={18} className="text-purple-400" />
-                                <h3 className="text-lg font-semibold text-gray-200">{t.matlabFormula}</h3>
-                            </div>
-
-                            <div className="bg-slate-950 rounded-xl p-4 border border-purple-500/30">
-                                <pre className="text-purple-300 font-mono text-sm overflow-x-auto whitespace-pre-wrap break-words">
-                                    {matlabFormula}
-                                </pre>
-                            </div>
-                        </div>
+                                )}
+                            </>
+                        ) : null}
 
                         {/* Timestamp for Audit */}
                         <div className="mt-6 pt-4 border-t border-slate-700 text-xs text-gray-500">

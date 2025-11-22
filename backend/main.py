@@ -218,11 +218,113 @@ def get_pnl(
         print("⚠️ Data missing in memory, attempting lazy load...")
         load_data()
         
-    if current_df is None:
-        # Return empty structure if no data
-        return PnLResponse(headers=[], rows=[])
+    if current_df is None or current_df.empty:
+        raise HTTPException(status_code=404, detail="No data loaded. Please upload a CSV file.")
     
     return calculate_pnl(current_df, current_mappings, current_overrides, start_date, end_date)
+
+@app.get("/pnl/transactions/{line_number}")
+def get_pnl_line_transactions(
+    line_number: int,
+    month: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get all transactions that contribute to a specific P&L line.
+    
+    Args:
+        line_number: The P&L line number (e.g., 9 for Marketing, 56 from mapping)
+        month: Optional month filter in format '2024-10' or integer
+    
+    Returns:
+        JSON with line details and list of transactions
+    """
+    global current_df, current_mappings
+    
+    if current_df is None:
+        load_data()
+    
+    if current_df is None or current_df.empty:
+        raise HTTPException(status_code=404, detail="No data loaded")
+    
+    # Find mapping for this line number  
+    line_mapping = None
+    for mapping in current_mappings:
+        try:
+            if int(mapping.linha_pl) == line_number:
+                line_mapping = mapping
+                break
+        except:
+            continue
+    
+    if not line_mapping:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No mapping found for line {line_number}"
+        )
+    
+    # Filter dataframe
+    filtered_df = current_df.copy()
+    
+    # Apply month filter if provided
+    if month:
+        try:
+            if '-' in str(month):  # Format: 'YYYY-MM'
+                filtered_df = filtered_df[filtered_df['Mes_Competencia'].astype(str) == month]
+            else:  # Could be Period object comparison
+                filtered_df = filtered_df[filtered_df['Mes_Competencia'] == month]
+        except Exception as e:
+            print(f"Month filter error: {e}")
+    
+    # Apply Centro de Custo filter
+    if line_mapping.centro_custo:
+        filtered_df = filtered_df[
+            filtered_df['Centro de Custo 1'].astype(str).str.contains(
+                line_mapping.centro_custo, case=False, na=False, regex=False
+            )
+        ]
+    
+    # Apply Fornecedor/Cliente filter
+    if line_mapping.fornecedor_cliente and line_mapping.fornecedor_cliente != "Diversos":
+        filtered_df = filtered_df[
+            filtered_df['Nome do fornecedor/cliente'].astype(str).str.contains(
+                line_mapping.fornecedor_cliente, case=False, na=False, regex=False
+            )
+        ]
+    
+    # Build transaction list
+    transactions = []
+    total = 0.0
+    
+    for _, row in filtered_df.iterrows():
+        try:
+            date_val = row.get('Data de competência')
+            date_str = date_val.strftime('%Y-%m-%d') if pd.notna(date_val) else ''
+        except:
+            date_str = ''
+            
+        transaction = {
+            "date": date_str,
+            "month": str(row.get('Mes_Competencia', '')),
+            "centro_custo": str(row.get('Centro de Custo 1', '')),
+            "fornecedor": str(row.get('Nome do fornecedor/cliente', '')),
+            "descricao": str(row.get('Descrição', '')),
+            "valor": float(row.get('Valor_Num', 0)),
+            "categoria": str(row.get('Plano de contas', ''))
+        }
+        transactions.append(transaction)
+        total += transaction['valor']
+    
+    return {
+        "line_number": line_number,
+        "description": line_mapping.descricao,
+        "centro_custo_filter": line_mapping.centro_custo,
+        "fornecedor_filter": line_mapping.fornecedor_cliente,
+        "month": month if month else "all",
+        "total": round(total, 2),
+        "count": len(transactions),
+        "transactions": transactions
+    }
 
 @app.get("/dashboard", response_model=DashboardData)
 def get_dashboard(current_user: dict = Depends(get_current_user)):

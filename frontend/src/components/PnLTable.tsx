@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { ChevronDown, Edit2, Save, X, Download, Search } from 'lucide-react';
+import { ChevronDown, Edit2, Save, X, Download, Search, Calculator } from 'lucide-react';
 import { GlassCard } from './ui/GlassCard';
 import { motion } from 'framer-motion';
+import FormulaModal from './FormulaModal';
 
 interface PnLRow {
     line_number: number;
@@ -55,6 +56,13 @@ export default function PnLTable({ language }: PnLTableProps) {
     const [editingCell, setEditingCell] = useState<{ line: number, month: string } | null>(null);
     const [editValue, setEditValue] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [transactionModal, setTransactionModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        value: number;
+        transactions: any[];
+        loading: boolean;
+    } | null>(null);
     const t = translations[language];
 
     useEffect(() => {
@@ -116,6 +124,38 @@ export default function PnLTable({ language }: PnLTableProps) {
 
     const handleExport = () => {
         alert('Export functionality coming soon!');
+    };
+
+    const handleCellClick = async (row: PnLRow, month: string, value: number) => {
+        // Don't open modal for headers
+        if (row.is_header) return;
+
+        // Open modal with loading state
+        setTransactionModal({
+            isOpen: true,
+            title: `${row.description} - ${month}`,
+            value: value,
+            transactions: [],
+            loading: true
+        });
+
+        try {
+            // Fetch transactions for this line
+            const response = await api.get(`/pnl/transactions/${row.line_number}`, {
+                params: { month }
+            });
+
+            setTransactionModal({
+                isOpen: true,
+                title: `${row.description} - ${month}`,
+                value: response.data.total,
+                transactions: response.data.transactions || [],
+                loading: false
+            });
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+            setTransactionModal(prev => prev ? { ...prev, loading: false } : null);
+        }
     };
 
     if (loading) return (
@@ -220,13 +260,27 @@ export default function PnLTable({ language }: PnLTableProps) {
                                                             <button onClick={() => setEditingCell(null)} className="text-red-400 hover:text-red-300"><X size={14} /></button>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center justify-end gap-2">
+                                                        <div
+                                                            className={`flex items-center justify-end gap-2 ${!isHeader && val !== 0 ? 'cursor-pointer hover:bg-blue-900/20 transition-colors rounded px-2 -mx-2' : ''
+                                                                }`}
+                                                            onClick={() => !isHeader && val !== 0 && handleCellClick(row, month, val)}
+                                                            title={!isHeader && val !== 0 ? 'Clique para ver detalhes' : ''}
+                                                        >
                                                             <span className={`${isNegative ? 'text-red-400' : (isTotal ? 'text-emerald-400' : 'text-slate-300')}`}>
                                                                 {formatCurrency(val)}
                                                             </span>
+                                                            {!isHeader && !isTotal && val !== 0 && (
+                                                                <Calculator
+                                                                    size={14}
+                                                                    className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-slate-500 hover:text-cyan-400"
+                                                                />
+                                                            )}
                                                             {!isHeader && !isTotal && (
                                                                 <button
-                                                                    onClick={() => handleEditClick(row.line_number, month, val)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleEditClick(row.line_number, month, val);
+                                                                    }}
                                                                     className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-slate-500 hover:text-cyan-400"
                                                                 >
                                                                     <Edit2 size={12} />
@@ -244,6 +298,19 @@ export default function PnLTable({ language }: PnLTableProps) {
                     </table>
                 </div>
             </GlassCard>
+
+            {/* Transaction Modal */}
+            {transactionModal && (
+                <FormulaModal
+                    isOpen={transactionModal.isOpen}
+                    onClose={() => setTransactionModal(null)}
+                    title={transactionModal.title}
+                    value={transactionModal.value}
+                    transactions={transactionModal.transactions}
+                    showTransactions={true}
+                    language={language}
+                />
+            )}
         </motion.div>
     );
 }
