@@ -8,6 +8,7 @@ from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashb
 from ai_service import generate_insights
 from auth import Token, create_access_token, get_current_user, USERS_DB, verify_password, get_password_hash
 from datetime import timedelta
+from dotenv import load_dotenv
 
 import os
 import json
@@ -15,61 +16,12 @@ import pickle
 from pathlib import Path
 from datetime import datetime
 
+# Load environment variables
+load_dotenv()
+
 app = FastAPI()
 
-# Auth Endpoint
-@app.post("/api/login", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = USERS_DB.get(form_data.username)
-    if not user or not verify_password(form_data.password, user['password_hash']):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-        data={"sub": form_data.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# Protected Routes Dependency
-# usage: user: dict = Depends(get_current_user)
-
-@app.post("/api/insights")
-def get_ai_insights(request_data: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    """Generate AI insights based on dashboard data"""
-    api_key = request_data.get("api_key")
-    dashboard_data = request_data.get("data")
-    
-    # API Key is now optional in the request, handled by backend constant
-    # if not api_key:
-    #    raise HTTPException(status_code=400, detail="API Key is required")
-        
-    if not dashboard_data:
-        raise HTTPException(status_code=400, detail="Dashboard data is required")
-        
-    insights = generate_insights(dashboard_data, api_key)
-    return {"insights": insights}
-
-# Force redeploy check
-
-# CORS Configuration
-# In production, FRONTEND_URL should be set to the actual frontend domain
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    frontend_url,
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ... (rest of imports)
 
 # Data persistence configuration
 DATA_DIR = Path("./data")
@@ -123,7 +75,11 @@ def load_data():
         if CSV_PATH.exists():
             with open(CSV_PATH, 'rb') as f:
                 current_df = pickle.load(f)
-            print(f"✅ Loaded data: {len(current_df)} rows")
+            
+            # Clean columns of loaded data to match new logic
+            if current_df is not None:
+                current_df.columns = [c.strip() for c in current_df.columns]
+                print(f"✅ Loaded data: {len(current_df)} rows (Columns cleaned)")
         
         # Load mappings
         if MAPPINGS_PATH.exists():

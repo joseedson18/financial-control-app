@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { Save, Plus, Trash2, Search } from 'lucide-react';
+import { Save, Plus, Trash2, Search, RefreshCw } from 'lucide-react';
+import { GlassCard } from './ui/GlassCard';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface MappingManagerProps {
     language: 'pt' | 'en';
@@ -129,15 +131,24 @@ export default function MappingManager({ language }: MappingManagerProps) {
         )
     );
 
-    if (loading) return <div className="p-8 text-center text-cyan-400 animate-pulse">{t.loading}</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center h-96">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-6"
+        >
             {/* Header Actions */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-200">{t.title}</h2>
-                    <p className="text-sm text-gray-400">{t.subtitle}</p>
+                    <h2 className="text-2xl font-bold text-white">{t.title}</h2>
+                    <p className="text-slate-400 text-sm">{t.subtitle}</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <button
@@ -151,9 +162,9 @@ export default function MappingManager({ language }: MappingManagerProps) {
                                 }
                             }
                         }}
-                        className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-colors flex items-center gap-2"
+                        className="btn-danger flex items-center gap-2"
                     >
-                        <Trash2 size={18} />
+                        <RefreshCw size={18} />
                         {t.resetMappings || 'Reset'}
                     </button>
                     <button
@@ -176,89 +187,97 @@ export default function MappingManager({ language }: MappingManagerProps) {
 
             {/* Search Bar */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500" size={20} />
                 <input
                     type="text"
                     placeholder={t.searchPlaceholder}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-cyan-500 transition-colors"
+                    className="glass-input w-full pl-10"
                 />
             </div>
 
             {/* Table */}
-            <div className="card-dark overflow-hidden p-0">
+            <GlassCard className="overflow-hidden p-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-800/50 text-gray-400 font-medium uppercase">
+                        <thead className="bg-slate-900/80 text-slate-400 font-medium uppercase">
                             <tr>
-                                <th className="px-4 py-3">{t.headers.financialGroup}</th>
-                                <th className="px-4 py-3">{t.headers.costCenter}</th>
-                                <th className="px-4 py-3">{t.headers.supplier}</th>
-                                <th className="px-4 py-3">{t.headers.plLine}</th>
-                                <th className="px-4 py-3">{t.headers.type}</th>
-                                <th className="px-4 py-3 text-center">{t.headers.actions}</th>
+                                <th className="px-6 py-4">{t.headers.financialGroup}</th>
+                                <th className="px-6 py-4">{t.headers.costCenter}</th>
+                                <th className="px-6 py-4">{t.headers.supplier}</th>
+                                <th className="px-6 py-4">{t.headers.plLine}</th>
+                                <th className="px-6 py-4">{t.headers.type}</th>
+                                <th className="px-6 py-4 text-center">{t.headers.actions}</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800">
-                            {filteredMappings.map((item, index) => (
-                                <tr key={index} className="hover:bg-white/5 transition-colors">
-                                    <td className="p-2">
-                                        <input
-                                            type="text"
-                                            value={item.grupo_financeiro}
-                                            onChange={(e) => handleChange(index, 'grupo_financeiro', e.target.value)}
-                                            className="bg-transparent border-none w-full text-gray-300 focus:ring-0"
-                                        />
-                                    </td>
-                                    <td className="p-2">
-                                        <input
-                                            type="text"
-                                            value={item.centro_custo}
-                                            onChange={(e) => handleChange(index, 'centro_custo', e.target.value)}
-                                            className="bg-transparent border-none w-full text-gray-300 focus:ring-0"
-                                        />
-                                    </td>
-                                    <td className="p-2">
-                                        <input
-                                            type="text"
-                                            value={item.fornecedor_cliente}
-                                            onChange={(e) => handleChange(index, 'fornecedor_cliente', e.target.value)}
-                                            className="bg-transparent border-none w-full text-gray-300 focus:ring-0"
-                                        />
-                                    </td>
-                                    <td className="p-2">
-                                        <input
-                                            type="text"
-                                            value={item.linha_pl}
-                                            onChange={(e) => handleChange(index, 'linha_pl', e.target.value)}
-                                            className="bg-transparent border-none w-full text-cyan-400 font-mono focus:ring-0"
-                                        />
-                                    </td>
-                                    <td className="p-2">
-                                        <select
-                                            value={item.tipo}
-                                            onChange={(e) => handleChange(index, 'tipo', e.target.value)}
-                                            className="bg-transparent border-none text-gray-300 focus:ring-0"
-                                        >
-                                            <option value="Despesa">Despesa</option>
-                                            <option value="Receita">Receita</option>
-                                        </select>
-                                    </td>
-                                    <td className="p-2 text-center">
-                                        <button
-                                            onClick={() => handleDelete(index)}
-                                            className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                        <tbody className="divide-y divide-white/5">
+                            <AnimatePresence>
+                                {filteredMappings.map((item, index) => (
+                                    <motion.tr
+                                        key={index}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="hover:bg-white/5 transition-colors group"
+                                    >
+                                        <td className="px-6 py-3">
+                                            <input
+                                                type="text"
+                                                value={item.grupo_financeiro}
+                                                onChange={(e) => handleChange(index, 'grupo_financeiro', e.target.value)}
+                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-white p-0"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <input
+                                                type="text"
+                                                value={item.centro_custo}
+                                                onChange={(e) => handleChange(index, 'centro_custo', e.target.value)}
+                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-white p-0"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <input
+                                                type="text"
+                                                value={item.fornecedor_cliente}
+                                                onChange={(e) => handleChange(index, 'fornecedor_cliente', e.target.value)}
+                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-white p-0"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <input
+                                                type="text"
+                                                value={item.linha_pl}
+                                                onChange={(e) => handleChange(index, 'linha_pl', e.target.value)}
+                                                className="bg-transparent border-none w-full text-cyan-400 font-mono focus:ring-0 p-0"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <select
+                                                value={item.tipo}
+                                                onChange={(e) => handleChange(index, 'tipo', e.target.value)}
+                                                className="bg-transparent border-none text-slate-300 focus:ring-0 p-0 focus:text-white"
+                                            >
+                                                <option value="Despesa" className="bg-slate-900">Despesa</option>
+                                                <option value="Receita" className="bg-slate-900">Receita</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-3 text-center">
+                                            <button
+                                                onClick={() => handleDelete(index)}
+                                                className="text-slate-500 hover:text-red-400 p-1 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    </motion.tr>
+                                ))}
+                            </AnimatePresence>
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
+            </GlassCard>
+        </motion.div>
     );
 }

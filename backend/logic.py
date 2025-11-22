@@ -61,12 +61,38 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             raise ValueError(f"Missing required column: {col}")
 
     # Data cleaning
-    df['Data de competência'] = pd.to_datetime(df['Data de competência'], format='%d/%m/%Y', errors='coerce')
+    # Data cleaning
+    # Normalize column names to avoid issues with spaces
+    df.columns = [c.strip() for c in df.columns]
+    
+    # Robust date parsing
+    def parse_dates(date_str):
+        if pd.isna(date_str): return pd.NaT
+        date_str = str(date_str).strip()
+        formats = ['%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y']
+        for fmt in formats:
+            try:
+                return pd.to_datetime(date_str, format=fmt)
+            except:
+                continue
+        return pd.NaT
+
+    df['Data de competência'] = df['Data de competência'].apply(parse_dates)
     
     def converter_valor_br(valor_str):
         if pd.isna(valor_str) or valor_str == '':
             return 0.0
-        valor_str = str(valor_str).replace('R$', '').replace('.', '').replace(',', '.').strip()
+        # Handle Brazilian format (1.234,56) and US format (1,234.56)
+        valor_str = str(valor_str).replace('R$', '').strip()
+        if ',' in valor_str and '.' in valor_str:
+            # Ambiguous, assume Brazilian if comma is last separator
+            if valor_str.rfind(',') > valor_str.rfind('.'):
+                valor_str = valor_str.replace('.', '').replace(',', '.')
+            else:
+                valor_str = valor_str.replace(',', '')
+        elif ',' in valor_str:
+            valor_str = valor_str.replace(',', '.')
+        
         try:
             return float(valor_str)
         except:
@@ -74,6 +100,12 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
 
     df['Valor_Num'] = df['Valor (R$)'].apply(converter_valor_br)
     df['Mes_Competencia'] = df['Data de competência'].dt.to_period('M')
+    
+    # Normalize text columns for mapping
+    if 'Centro de Custo 1' in df.columns:
+        df['Centro de Custo 1'] = df['Centro de Custo 1'].astype(str).str.strip()
+    if 'Nome do fornecedor/cliente' in df.columns:
+        df['Nome do fornecedor/cliente'] = df['Nome do fornecedor/cliente'].astype(str).str.strip()
     
     return df
 
@@ -85,10 +117,11 @@ def get_initial_mappings() -> List[MappingItem]:
         # RECEITAS
         ["Receita Google", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "25", "Receita", "Sim", "Receita Google Play"],
         ["Receita Apple", "App Store Net Revenue", "App Store (Apple)", "33", "Receita", "Sim", "Receita App Store"],
-        ["Receita Brasil", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "26", "Receita", "Sim", "Receita Brasil - Google"],
-        ["Receita Brasil", "App Store Net Revenue", "App Store (Apple)", "34", "Receita", "Sim", "Receita Brasil - Apple"],
-        ["Receita USA", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "28", "Receita", "Sim", "Receita USA - Google"],
-        ["Receita USA", "App Store Net Revenue", "App Store (Apple)", "36", "Receita", "Sim", "Receita USA - Apple"],
+        # Duplicates commented out to avoid double counting if source data doesn't distinguish
+        # ["Receita Brasil", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "26", "Receita", "Sim", "Receita Brasil - Google"],
+        # ["Receita Brasil", "App Store Net Revenue", "App Store (Apple)", "34", "Receita", "Sim", "Receita Brasil - Apple"],
+        # ["Receita USA", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "28", "Receita", "Sim", "Receita USA - Google"],
+        # ["Receita USA", "App Store Net Revenue", "App Store (Apple)", "36", "Receita", "Sim", "Receita USA - Apple"],
         
         # COGS
         ["COGS", "Web Services Expenses", "AWS", "43", "Custo", "Sim", "Amazon Web Services"],
@@ -166,12 +199,15 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     
     # Helper to sum values based on mapping
     def get_value(mapping_item: MappingItem, month):
+        # Case-insensitive matching for Cost Center
         mask = (
             (filtered_df['Mes_Competencia'] == month) &
-            (filtered_df['Centro de Custo 1'] == mapping_item.centro_custo)
+            (filtered_df['Centro de Custo 1'].str.lower() == mapping_item.centro_custo.lower().strip())
         )
+        
+        # Case-insensitive partial match for Supplier
         if mapping_item.fornecedor_cliente != "Diversos":
-             mask &= (filtered_df['Nome do fornecedor/cliente'].astype(str).str.contains(mapping_item.fornecedor_cliente, case=False, na=False))
+             mask &= (filtered_df['Nome do fornecedor/cliente'].astype(str).str.contains(mapping_item.fornecedor_cliente, case=False, na=False, regex=False))
         
         return filtered_df[mask]['Valor_Num'].sum()
 

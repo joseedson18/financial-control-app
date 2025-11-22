@@ -18,11 +18,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError('');
 
         try {
-            const formData = new FormData();
-            formData.append('username', email);
-            formData.append('password', password);
+            const params = new URLSearchParams();
+            params.append('username', email);
+            params.append('password', password);
 
-            const response = await api.post('/api/login', formData, {
+            const response = await api.post('/api/login', params, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },

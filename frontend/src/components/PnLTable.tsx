@@ -1,145 +1,69 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { Download, Edit2, Save, Trash2, Calendar } from 'lucide-react';
+import { ChevronDown, Edit2, Save, X, Download, Search } from 'lucide-react';
+import { GlassCard } from './ui/GlassCard';
+import { motion } from 'framer-motion';
 
-interface PnLProps {
-    language: 'pt' | 'en';
-}
-
-interface PnLItem {
+interface PnLRow {
     line_number: number;
     description: string;
     values: { [key: string]: number };
     is_header: boolean;
     is_total: boolean;
+    indent_level: number;
 }
 
 interface PnLData {
     headers: string[];
-    rows: PnLItem[];
+    rows: PnLRow[];
 }
 
-type FilterType = 'all' | 'today' | 'week' | 'month' | 'year' | 'custom';
+interface PnLTableProps {
+    language: 'pt' | 'en';
+}
 
 const translations = {
     pt: {
-        title: 'Demonstrativo de Resultados',
-        export: 'Exportar CSV',
-        editMode: 'Modo de Edição',
+        title: 'Demonstrativo de Resultados (DRE)',
+        subtitle: 'Visão detalhada de receitas, custos e despesas',
+        loading: 'Carregando DRE...',
         save: 'Salvar',
         cancel: 'Cancelar',
-        loading: 'Carregando DRE...',
-        noData: 'Nenhum dado disponível.',
-        description: 'Descrição',
-        editing: 'Editando...',
-        overrideSuccess: 'Valor atualizado com sucesso!',
-        overrideError: 'Erro ao atualizar valor.',
-        clearEdits: 'Limpar Edições',
-        confirmClear: 'Tem certeza que deseja limpar todas as edições manuais?',
-        filterLabel: 'Período:',
-        filterAll: 'Todos',
-        filterToday: 'Hoje',
-        filterWeek: 'Esta Semana',
-        filterMonth: 'Este Mês',
-        filterYear: 'Este Ano',
-        filterCustom: 'Personalizado',
-        filterFrom: 'De:',
-        filterTo: 'Até:',
-        filterApply: 'Aplicar'
+        edit: 'Editar',
+        export: 'Exportar CSV',
+        filter: 'Filtrar',
+        search: 'Buscar conta...',
+        noData: 'Nenhum dado disponível'
     },
     en: {
-        title: 'Profit & Loss Statement',
-        export: 'Export CSV',
-        editMode: 'Edit Mode',
+        title: 'Profit & Loss Statement (P&L)',
+        subtitle: 'Detailed view of revenue, costs, and expenses',
+        loading: 'Loading P&L...',
         save: 'Save',
         cancel: 'Cancel',
-        loading: 'Loading P&L...',
-        noData: 'No data available.',
-        description: 'Description',
-        editing: 'Editing...',
-        overrideSuccess: 'Value updated successfully!',
-        overrideError: 'Error updating value.',
-        clearEdits: 'Clear Edits',
-        confirmClear: 'Are you sure you want to clear all manual edits?',
-        filterLabel: 'Period:',
-        filterAll: 'All',
-        filterToday: 'Today',
-        filterWeek: 'This Week',
-        filterMonth: 'This Month',
-        filterYear: 'This Year',
-        filterCustom: 'Custom Range',
-        filterFrom: 'From:',
-        filterTo: 'To:',
-        filterApply: 'Apply'
+        edit: 'Edit',
+        export: 'Export CSV',
+        filter: 'Filter',
+        search: 'Search account...',
+        noData: 'No data available'
     }
 };
 
-export default function PnLTable({ language }: PnLProps) {
+export default function PnLTable({ language }: PnLTableProps) {
     const [data, setData] = useState<PnLData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [isEditMode, setIsEditMode] = useState(false);
     const [editingCell, setEditingCell] = useState<{ line: number, month: string } | null>(null);
     const [editValue, setEditValue] = useState('');
-
-    // Filter states
-    const [filterType, setFilterType] = useState<FilterType>('all');
-    const [customStartDate, setCustomStartDate] = useState('');
-    const [customEndDate, setCustomEndDate] = useState('');
-
+    const [searchTerm, setSearchTerm] = useState('');
     const t = translations[language];
 
-    // Helper to format date as YYYY-MM-DD
-    const formatDate = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
+    useEffect(() => {
+        fetchPnL();
+    }, []);
 
-    // Get date range based on filter type
-    const getFilterDates = () => {
-        if (filterType === 'all') return null;
-
-        if (filterType === 'custom') {
-            if (!customStartDate || !customEndDate) return null;
-            return { start: customStartDate, end: customEndDate };
-        }
-
-        const now = new Date();
-
-        switch (filterType) {
-            case 'today':
-                return { start: formatDate(now), end: formatDate(now) };
-
-            case 'week': {
-                const weekStart = new Date(now);
-                weekStart.setDate(now.getDate() - now.getDay());
-                return { start: formatDate(weekStart), end: formatDate(now) };
-            }
-
-            case 'month': {
-                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                return { start: formatDate(monthStart), end: formatDate(now) };
-            }
-
-            case 'year': {
-                const yearStart = new Date(now.getFullYear(), 0, 1);
-                return { start: formatDate(yearStart), end: formatDate(now) };
-            }
-
-            default:
-                return null;
-        }
-    };
-
-    const fetchData = async () => {
+    const fetchPnL = async () => {
         try {
-            const dates = getFilterDates();
-            const params = dates
-                ? { start_date: dates.start, end_date: dates.end }
-                : {};
-
-            const response = await api.get('/pnl', { params });
+            const response = await api.get('/pnl');
             setData(response.data);
         } catch (error) {
             console.error('Error fetching P&L:', error);
@@ -148,36 +72,13 @@ export default function PnLTable({ language }: PnLProps) {
         }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, [filterType, customStartDate, customEndDate]);
-
-    const handleExport = () => {
-        if (!data) return;
-
-        const csvContent = [
-            ['Description', ...data.headers].join(','),
-            ...data.rows.map(row => {
-                const values = data.headers.map(h => row.values[h] || 0);
-                return [`"${row.description}"`, ...values].join(',');
-            })
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'pnl_export.csv';
-        link.click();
+    const handleEditClick = (line: number, month: string, value: number) => {
+        setEditingCell({ line, month });
+        setEditValue(value.toString());
     };
 
-    const handleCellClick = (row: PnLItem, month: string) => {
-        if (!isEditMode) return;
-        setEditingCell({ line: row.line_number, month });
-        setEditValue(String(row.values[month] || 0));
-    };
-
-    const handleSaveOverride = async () => {
-        if (!editingCell) return;
+    const handleSave = async () => {
+        if (!editingCell || !data) return;
 
         try {
             await api.post('/pnl/override', {
@@ -186,179 +87,163 @@ export default function PnLTable({ language }: PnLProps) {
                 value: parseFloat(editValue)
             });
 
-            // Refresh data
-            await fetchData();
+            // Optimistic update
+            const newRows = data.rows.map(row => {
+                if (row.line_number === editingCell.line) {
+                    return {
+                        ...row,
+                        values: { ...row.values, [editingCell.month]: parseFloat(editValue) }
+                    };
+                }
+                return row;
+            });
+            setData({ ...data, rows: newRows });
             setEditingCell(null);
         } catch (error) {
             console.error('Error saving override:', error);
-            alert(t.overrideError);
+            alert('Failed to save changes');
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            handleSaveOverride();
-        } else if (e.key === 'Escape') {
-            setEditingCell(null);
-        }
+    const formatCurrency = (val: number) => {
+        return val.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
     };
 
-    if (loading) return <div className="p-8 text-center text-cyan-400 animate-pulse">{t.loading}</div>;
-    if (!data || data.rows.length === 0) return <div className="p-8 text-center text-gray-400">{t.noData}</div>;
+    const handleExport = () => {
+        alert('Export functionality coming soon!');
+    };
+
+    if (loading) return (
+        <div className="flex items-center justify-center h-96">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+        </div>
+    );
+
+    if (!data) return <div className="text-center text-slate-400 mt-12">{t.noData}</div>;
+
+    const filteredRows = data.rows.filter(row =>
+        row.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
-        <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-6"
+        >
             {/* Header Actions */}
-            <div className="flex flex-col gap-4 mb-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <h2 className="text-xl font-semibold text-gray-200">{t.title}</h2>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setIsEditMode(!isEditMode)}
-                            className={`btn-secondary flex items-center gap-2 ${isEditMode ? 'bg-amber-500/20 text-amber-400 border-amber-500/50' : ''}`}
-                        >
-                            {isEditMode ? <Save size={18} /> : <Edit2 size={18} />}
-                            {isEditMode ? t.save : t.editMode}
-                        </button>
-                        <button
-                            onClick={async () => {
-                                if (confirm(t.confirmClear || 'Clear all manual edits?')) {
-                                    try {
-                                        await api.delete('/api/pnl/overrides');
-                                        fetchData();
-                                    } catch (e) {
-                                        alert('Error clearing edits');
-                                    }
-                                }
-                            }}
-                            className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-colors flex items-center gap-2"
-                        >
-                            <Trash2 size={18} />
-                            {t.clearEdits || 'Clear Edits'}
-                        </button>
-                        <button
-                            onClick={handleExport}
-                            className="btn-secondary flex items-center gap-2"
-                        >
-                            <Download size={18} />
-                            {t.export}
-                        </button>
-                    </div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-white">{t.title}</h2>
+                    <p className="text-slate-400 text-sm">{t.subtitle}</p>
                 </div>
-
-                {/* Filter Controls */}
-                <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
-                    <div className="flex items-center gap-2">
-                        <Calendar size={18} className="text-blue-400" />
-                        <span className="text-sm text-gray-400">{t.filterLabel}</span>
+                <div className="flex gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-64">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500" size={16} />
+                        <input
+                            type="text"
+                            placeholder={t.search}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="glass-input w-full pl-10"
+                        />
                     </div>
-
-                    <select
-                        value={filterType}
-                        onChange={(e) => setFilterType(e.target.value as FilterType)}
-                        className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                    >
-                        <option value="all">{t.filterAll}</option>
-                        <option value="today">{t.filterToday}</option>
-                        <option value="week">{t.filterWeek}</option>
-                        <option value="month">{t.filterMonth}</option>
-                        <option value="year">{t.filterYear}</option>
-                        <option value="custom">{t.filterCustom}</option>
-                    </select>
-
-                    {filterType === 'custom' && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-400">{t.filterFrom}</span>
-                            <input
-                                type="date"
-                                value={customStartDate}
-                                onChange={(e) => setCustomStartDate(e.target.value)}
-                                className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                            />
-                            <span className="text-sm text-gray-400">{t.filterTo}</span>
-                            <input
-                                type="date"
-                                value={customEndDate}
-                                onChange={(e) => setCustomEndDate(e.target.value)}
-                                className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                            />
-                        </div>
-                    )}
+                    <button onClick={handleExport} className="btn-secondary flex items-center gap-2">
+                        <Download size={16} /> {t.export}
+                    </button>
                 </div>
             </div>
 
-            <div className="overflow-x-auto pb-4">
-                <div className="min-w-max">
-                    <table className="w-full border-collapse">
-                        <thead>
+            {/* Table Container */}
+            <GlassCard className="overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-900/80 text-slate-400 font-medium uppercase text-xs">
                             <tr>
-                                <th className="sticky left-0 z-20 bg-[#0f172a] p-4 text-left text-sm font-semibold text-gray-400 border-b border-gray-800 min-w-[300px]">
-                                    {t.description}
-                                </th>
+                                <th className="px-6 py-4 sticky left-0 bg-slate-900/95 backdrop-blur-sm z-10 min-w-[300px]">Description</th>
                                 {data.headers.map(header => (
-                                    <th key={header} className="p-4 text-right text-sm font-semibold text-gray-400 border-b border-gray-800 min-w-[120px]">
-                                        {header}
-                                    </th>
+                                    <th key={header} className="px-6 py-4 text-right min-w-[120px]">{header}</th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody>
-                            {data.rows.map((row) => (
-                                <tr
-                                    key={row.line_number}
-                                    className={`
-                    group transition-colors
-                    ${row.is_header ? 'bg-gray-800/50 font-bold text-gray-200' : 'hover:bg-white/5 text-gray-300'}
-                    ${row.is_total ? 'font-bold border-t border-gray-700 bg-gray-800/30' : ''}
-                  `}
-                                >
-                                    <td className="sticky left-0 z-10 bg-inherit p-3 border-b border-gray-800/50 group-hover:bg-[#1e293b] transition-colors">
-                                        {row.description}
-                                    </td>
-                                    {data.headers.map(month => {
-                                        const isEditing = editingCell?.line === row.line_number && editingCell?.month === month;
-                                        const value = row.values[month] || 0;
+                        <tbody className="divide-y divide-white/5">
+                            {filteredRows.map((row, index) => {
+                                const isHeader = row.is_header;
+                                const isTotal = row.is_total;
 
-                                        return (
-                                            <td
-                                                key={month}
-                                                className={`
-                          p-3 text-right border-b border-gray-800/50 font-mono text-sm
-                          ${isEditMode && !row.is_header && !row.is_total ? 'cursor-pointer hover:bg-amber-500/10 hover:text-amber-400' : ''}
-                        `}
-                                                onClick={() => !row.is_header && !row.is_total && handleCellClick(row, month)}
-                                            >
-                                                {isEditing ? (
-                                                    <input
-                                                        autoFocus
-                                                        type="number"
-                                                        className="w-full bg-gray-900 border border-cyan-500 rounded px-2 py-1 text-right text-white outline-none"
-                                                        value={editValue}
-                                                        onChange={(e) => setEditValue(e.target.value)}
-                                                        onBlur={handleSaveOverride}
-                                                        onKeyDown={handleKeyDown}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    />
-                                                ) : (
-                                                    row.description.includes('%')
-                                                        ? (value * 100).toFixed(1) + '%'
-                                                        : value.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                                                )}
-                                            </td>
-                                        );
-                                    })}
-                                </tr>
-                            ))}
+                                return (
+                                    <motion.tr
+                                        key={row.line_number}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: index * 0.02 }}
+                                        className={`
+                                            group transition-colors hover:bg-white/5
+                                            ${isHeader ? 'bg-slate-800/30 font-semibold text-cyan-400' : ''}
+                                            ${isTotal ? 'bg-slate-800/50 font-bold text-white border-t-2 border-white/10' : 'text-slate-300'}
+                                        `}
+                                    >
+                                        <td className="px-6 py-3 sticky left-0 bg-slate-900/20 backdrop-blur-sm group-hover:bg-slate-800/40 transition-colors">
+                                            <div className="flex items-center gap-2" style={{ paddingLeft: `${row.indent_level * 16}px` }}>
+                                                {isHeader && <ChevronDown size={14} />}
+                                                {!isHeader && !isTotal && <div className="w-4" />}
+                                                {row.description}
+                                            </div>
+                                        </td>
+                                        {data.headers.map(month => {
+                                            const val = row.values[month] || 0;
+                                            const isEditing = editingCell?.line === row.line_number && editingCell?.month === month;
+                                            const isNegative = val < 0;
+
+                                            return (
+                                                <td key={month} className="px-6 py-3 text-right relative group/cell">
+                                                    {isEditing ? (
+                                                        <div className="flex items-center justify-end gap-2 absolute inset-0 px-2 bg-slate-800 z-20">
+                                                            <input
+                                                                autoFocus
+                                                                type="number"
+                                                                value={editValue}
+                                                                onChange={(e) => setEditValue(e.target.value)}
+                                                                className="w-24 bg-slate-900 border border-cyan-500 rounded px-2 py-1 text-right text-white outline-none"
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') handleSave();
+                                                                    if (e.key === 'Escape') setEditingCell(null);
+                                                                }}
+                                                            />
+                                                            <button onClick={handleSave} className="text-emerald-400 hover:text-emerald-300"><Save size={14} /></button>
+                                                            <button onClick={() => setEditingCell(null)} className="text-red-400 hover:text-red-300"><X size={14} /></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <span className={`${isNegative ? 'text-red-400' : (isTotal ? 'text-emerald-400' : 'text-slate-300')}`}>
+                                                                {formatCurrency(val)}
+                                                            </span>
+                                                            {!isHeader && !isTotal && (
+                                                                <button
+                                                                    onClick={() => handleEditClick(row.line_number, month, val)}
+                                                                    className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-slate-500 hover:text-cyan-400"
+                                                                >
+                                                                    <Edit2 size={12} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    </motion.tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            {isEditMode && (
-                <div className="fixed bottom-8 right-8 bg-amber-500 text-black px-4 py-2 rounded-lg shadow-lg animate-bounce font-semibold">
-                    {t.editing}
-                </div>
-            )}
-        </div>
+            </GlassCard>
+        </motion.div>
     );
 }

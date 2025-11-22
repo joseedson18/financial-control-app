@@ -1,33 +1,52 @@
-import React from 'react';
-import type { LucideIcon } from 'lucide-react';
+import { type LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { GlassCard } from './ui/GlassCard';
 
 interface StatCardProps {
     title: string;
     value: string;
     icon: LucideIcon;
     gradient: string;
+    trend?: number; // Percentage change (e.g., 12.5 or -5.2)
+    trendLabel?: string; // e.g., "vs last month"
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, gradient }) => {
+export default function StatCard({ title, value, icon: Icon, gradient, trend, trendLabel = "vs last month" }: StatCardProps) {
+    // Extract gradient colors for the icon background
+    const getGradientColors = (grad: string) => {
+        if (grad.includes('cyan')) return 'from-cyan-500/20 to-blue-500/20 text-cyan-400';
+        if (grad.includes('emerald')) return 'from-emerald-500/20 to-teal-500/20 text-emerald-400';
+        if (grad.includes('purple')) return 'from-purple-500/20 to-pink-500/20 text-purple-400';
+        if (grad.includes('amber')) return 'from-amber-500/20 to-orange-500/20 text-amber-400';
+        return 'from-gray-500/20 to-slate-500/20 text-gray-400';
+    };
+
+    const iconStyle = getGradientColors(gradient);
+    const isPositive = trend && trend >= 0;
+
     return (
-        <div className="card-dark p-6 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div className={`absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full ${gradient} transition-opacity group-hover:opacity-20`} />
-
+        <GlassCard className="p-6 flex flex-col justify-between h-full group" hoverEffect={true}>
             <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-xl bg-white/5 ${gradient.replace('bg-gradient-to-br', 'text-white')} bg-clip-text`}>
-                    <Icon size={24} className="text-gray-200" />
+                <div>
+                    <p className="text-sm font-medium text-slate-400 mb-1 group-hover:text-slate-300 transition-colors">{title}</p>
+                    <h3 className="text-2xl font-bold text-white tracking-tight">{value}</h3>
                 </div>
-                <div className={`px-2 py-1 rounded text-xs font-medium bg-white/5 text-gray-400`}>
-                    Last Month
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${iconStyle} shadow-lg`}>
+                    <Icon size={20} />
                 </div>
             </div>
 
-            <div>
-                <p className="text-gray-400 text-sm font-medium mb-1">{title}</p>
-                <h3 className="text-2xl font-bold text-gray-100">{value}</h3>
-            </div>
-        </div>
+            {trend !== undefined && (
+                <div className="flex items-center gap-2 text-xs font-medium">
+                    <span className={`flex items-center gap-1 px-2 py-1 rounded-full ${isPositive
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        }`}>
+                        {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {Math.abs(trend)}%
+                    </span>
+                    <span className="text-slate-500">{trendLabel}</span>
+                </div>
+            )}
+        </GlassCard>
     );
-};
-
-export default StatCard;
+}

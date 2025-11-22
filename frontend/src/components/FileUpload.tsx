@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import api from '../api';
 import { Upload, CheckCircle, AlertCircle, FileSpreadsheet, Loader2, Trash2 } from 'lucide-react';
+import { GlassCard } from './ui/GlassCard';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface FileUploadProps {
     language: 'pt' | 'en';
@@ -93,45 +95,51 @@ export default function FileUpload({ language }: FileUploadProps) {
     };
 
     return (
-        <div className="max-w-3xl mx-auto">
-            <div className="card-dark hover:border-cyan-500/30 transition-all duration-500">
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-3xl mx-auto"
+        >
+            <GlassCard className="p-12 text-center relative overflow-hidden">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500" />
+
                 {/* Icon Header */}
-                <div className="w-20 h-20 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-cyan-500/30 glow-cyan">
-                    <Upload size={40} className="text-white" />
+                <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_rgba(6,182,212,0.2)] border border-white/10">
+                    <Upload size={40} className="text-cyan-400" />
                 </div>
 
-                <h2 className="text-3xl font-bold text-center mb-3">
-                    <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                        {t.title}
-                    </span>
+                <h2 className="text-3xl font-bold text-white mb-4">
+                    {t.title}
                 </h2>
-                <p className="text-gray-400 text-center mb-10">
+                <p className="text-slate-400 mb-10 max-w-lg mx-auto">
                     {t.subtitle}
                 </p>
 
                 {/* Upload Area */}
-                <div className="relative group cursor-pointer mb-8">
+                <div className="relative group cursor-pointer mb-8 max-w-xl mx-auto">
                     <input
                         type="file"
                         accept=".csv"
                         onChange={handleFileChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
                     <div className={`
-            relative border-2 border-dashed rounded-2xl p-12 transition-all duration-300
-            ${file
-                            ? 'border-cyan-500 bg-cyan-500/5 glow-cyan'
-                            : 'border-gray-600 hover:border-cyan-500/50 hover:bg-white/5 group-hover:glow-cyan'
+                        relative border-2 border-dashed rounded-2xl p-12 transition-all duration-300
+                        ${file
+                            ? 'border-cyan-500 bg-cyan-500/5 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
+                            : 'border-slate-600 hover:border-cyan-500/50 hover:bg-white/5'
                         }
-          `}>
+                    `}>
                         {file ? (
                             <div className="flex flex-col items-center gap-4">
-                                <div className="p-4 bg-cyan-500/10 rounded-xl">
+                                <div className="p-4 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
                                     <FileSpreadsheet size={48} className="text-cyan-400" />
                                 </div>
                                 <div className="text-center">
                                     <p className="font-semibold text-cyan-400 text-lg">{file.name}</p>
-                                    <p className="text-gray-500 text-sm mt-1">
+                                    <p className="text-slate-500 text-sm mt-1">
                                         {(file.size / 1024).toFixed(2)} KB
                                     </p>
                                 </div>
@@ -139,12 +147,12 @@ export default function FileUpload({ language }: FileUploadProps) {
                         ) : (
                             <div className="text-center">
                                 <div className="mb-4">
-                                    <Upload size={48} className="mx-auto text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                                    <Upload size={48} className="mx-auto text-slate-500 group-hover:text-cyan-400 transition-colors" />
                                 </div>
-                                <p className="text-gray-300 font-medium text-lg mb-2">
-                                    <span className="text-gradient-primary">{t.dragDrop}</span> {t.orDrag}
+                                <p className="text-slate-300 font-medium text-lg mb-2">
+                                    <span className="text-cyan-400">{t.dragDrop}</span> {t.orDrag}
                                 </p>
-                                <p className="text-gray-500 text-sm">{t.fileType}</p>
+                                <p className="text-slate-500 text-sm">{t.fileType}</p>
                             </div>
                         )}
                     </div>
@@ -155,12 +163,12 @@ export default function FileUpload({ language }: FileUploadProps) {
                     onClick={handleUpload}
                     disabled={!file || status === 'uploading'}
                     className={`
-            w-full py-4 px-6 rounded-xl font-semibold text-white text-lg
-            transition-all duration-300 flex items-center justify-center gap-3
-            ${!file || status === 'uploading'
-                            ? 'bg-gray-700 cursor-not-allowed opacity-50'
-                            : 'gradient-primary shadow-xl shadow-cyan-500/30 hover:shadow-2xl hover:shadow-cyan-500/40 hover:scale-105 glow-cyan'}
-          `}
+                        w-full max-w-xl mx-auto py-4 px-6 rounded-xl font-semibold text-white text-lg
+                        transition-all duration-300 flex items-center justify-center gap-3
+                        ${!file || status === 'uploading'
+                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02]'}
+                    `}
                 >
                     {status === 'uploading' ? (
                         <>
@@ -187,29 +195,36 @@ export default function FileUpload({ language }: FileUploadProps) {
                             }
                         }
                     }}
-                    className="w-full mt-4 py-3 px-6 rounded-xl font-semibold text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-all flex items-center justify-center gap-2"
+                    className="mt-6 text-red-400 hover:text-red-300 text-sm flex items-center justify-center gap-2 mx-auto transition-colors"
                 >
-                    <Trash2 size={20} />
+                    <Trash2 size={16} />
                     <span>{t.clearData || 'Clear Data'}</span>
                 </button>
 
                 {/* Status Message */}
-                {message && (
-                    <div className={`
-            mt-6 p-5 rounded-xl flex items-center gap-4 text-sm border
-            ${status === 'success'
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                            : 'bg-red-500/10 border-red-500/30 text-red-400'}
-          `}>
-                        <div className="flex-shrink-0">
-                            {status === 'success'
-                                ? <CheckCircle size={24} className="text-emerald-400" />
-                                : <AlertCircle size={24} className="text-red-400" />}
-                        </div>
-                        <span className="flex-1 font-medium">{message}</span>
-                    </div>
-                )}
-            </div>
-        </div>
+                <AnimatePresence>
+                    {message && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className={`
+                                mt-6 p-4 rounded-xl flex items-center gap-4 text-sm border max-w-xl mx-auto
+                                ${status === 'success'
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                    : 'bg-red-500/10 border-red-500/30 text-red-400'}
+                            `}
+                        >
+                            <div className="flex-shrink-0">
+                                {status === 'success'
+                                    ? <CheckCircle size={24} className="text-emerald-400" />
+                                    : <AlertCircle size={24} className="text-red-400" />}
+                            </div>
+                            <span className="flex-1 font-medium text-left">{message}</span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </GlassCard>
+        </motion.div>
     );
 }

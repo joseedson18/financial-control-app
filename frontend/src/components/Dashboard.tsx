@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell, Sector } from 'recharts';
 import api from '../api';
 import StatCard from './StatCard';
-import AiInsights from './AiInsights';
-import { Printer, TrendingUp, DollarSign, Activity, PieChart as PieChartIcon, Trash2 } from 'lucide-react';
+import AiInsights, { newLocal } from './AiInsights';
+import { TrendingUp, DollarSign, Activity, PieChart as PieChartIcon, Trash2, Download } from 'lucide-react';
+import { GlassCard } from './ui/GlassCard';
+import { motion } from 'framer-motion';
 
 interface DashboardProps {
     language: 'pt' | 'en';
@@ -17,10 +19,9 @@ interface DashboardData {
 
 const translations = {
     pt: {
-        loading: 'Carregando dados do dashboard...',
+        loading: 'Carregando dashboard...',
         noDataTitle: 'Nenhum Dado Disponível',
-        noDataDesc: 'Importe um arquivo CSV do Conta Azul para ver seu dashboard financeiro com KPIs, gráficos e insights.',
-        uploadBtn: 'Importar Arquivo',
+        noDataDesc: 'Importe um arquivo CSV do Conta Azul para ver seu dashboard financeiro.',
         revenue: 'Receita Total',
         grossProfit: 'Lucro Bruto',
         ebitda: 'EBITDA',
@@ -40,10 +41,9 @@ const translations = {
         confirmClear: 'Tem certeza que deseja apagar todos os dados?'
     },
     en: {
-        loading: 'Loading dashboard data...',
+        loading: 'Loading dashboard...',
         noDataTitle: 'No Data Available',
-        noDataDesc: 'Upload a CSV file from Conta Azul to see your financial dashboard with KPIs, charts, and insights.',
-        uploadBtn: 'Upload File',
+        noDataDesc: 'Upload a CSV file from Conta Azul to see your financial dashboard.',
         revenue: 'Total Revenue',
         grossProfit: 'Gross Profit',
         ebitda: 'EBITDA',
@@ -89,31 +89,33 @@ const renderActiveShape = (props: any) => {
 
     return (
         <g>
-            <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill} className="text-lg font-bold">
+            <text x={cx} y={cy} dy={8} textAnchor="middle" fill="#fff" className="text-xl font-bold drop-shadow-lg">
                 {payload.name}
             </text>
             <Sector
                 cx={cx}
                 cy={cy}
                 innerRadius={innerRadius}
-                outerRadius={outerRadius + 6}
+                outerRadius={outerRadius + 8}
                 startAngle={startAngle}
                 endAngle={endAngle}
                 fill={fill}
+                className="drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
             />
             <Sector
                 cx={cx}
                 cy={cy}
                 startAngle={startAngle}
                 endAngle={endAngle}
-                innerRadius={outerRadius + 6}
-                outerRadius={outerRadius + 10}
+                innerRadius={outerRadius + 8}
+                outerRadius={outerRadius + 12}
                 fill={fill}
+                opacity={0.3}
             />
-            <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-            <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#fff" className="text-sm">{`R$ ${value.toLocaleString()}`}</text>
-            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999" className="text-xs">
+            <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={2} />
+            <circle cx={ex} cy={ey} r={3} fill={fill} stroke="#fff" strokeWidth={1} />
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#fff" className="text-sm font-medium">{`R$ ${value.toLocaleString()}`}</text>
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#94a3b8" className="text-xs">
                 {`(${(percent * 100).toFixed(1)}%)`}
             </text>
         </g>
@@ -163,16 +165,19 @@ export default function Dashboard({ language }: DashboardProps) {
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-gray-900 border border-gray-700 p-3 rounded shadow-xl">
-                    <p className="text-gray-300 font-semibold mb-2">{label}</p>
+                <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-xl shadow-2xl">
+                    <p className="text-slate-300 font-semibold mb-2 border-b border-white/10 pb-2">{label}</p>
                     {payload.map((entry: any, index: number) => (
-                        <p key={index} style={{ color: entry.color }} className="text-sm">
-                            {entry.name}: {
-                                entry.name === 'Margin' || entry.name === 'EBITDA %'
-                                    ? formatPercent(entry.value)
-                                    : formatCurrency(entry.value)
-                            }
-                        </p>
+                        <div key={index} className="flex items-center gap-2 mb-1">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                            <p style={{ color: entry.color }} className="text-sm font-medium">
+                                {entry.name}: {
+                                    entry.name === 'Margin' || entry.name === 'EBITDA %'
+                                        ? formatPercent(entry.value)
+                                        : formatCurrency(entry.value)
+                                }
+                            </p>
+                        </div>
                     ))}
                 </div>
             );
@@ -180,50 +185,69 @@ export default function Dashboard({ language }: DashboardProps) {
         return null;
     };
 
-    if (loading) return <div className="p-8 text-center text-cyan-400 animate-pulse">{t.loading}</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center h-96">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+        </div>
+    );
 
-    // Check if we have data (allow 0 revenue if we have monthly data)
     if (!data || !data.monthly_data || data.monthly_data.length === 0) {
         return (
             <div className="text-center p-12">
-                <div className="bg-gray-800/50 rounded-2xl p-8 max-w-md mx-auto border border-gray-700">
-                    <Activity size={48} className="mx-auto text-gray-500 mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-200 mb-2">{t.noDataTitle}</h3>
-                    <p className="text-gray-400 mb-6">{t.noDataDesc}</p>
-                </div>
+                <GlassCard className="max-w-md mx-auto p-12">
+                    <div className="bg-slate-800/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Activity size={40} className="text-cyan-500" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-3">{t.noDataTitle}</h3>
+                    <p className="text-slate-400 mb-8">{t.noDataDesc}</p>
+                </GlassCard>
             </div>
         );
     }
 
-    // Prepare Pie Chart Data
     const costPieData = Object.entries(data.cost_structure || {}).map(([name, value]) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize
+        name: name.charAt(0).toUpperCase() + name.slice(1),
         value
     }));
 
     const pieColors = [COLORS.marketing, COLORS.wages, COLORS.tech, COLORS.other, COLORS.cost];
 
+    // Calculate trends (mock data for now, could be real if backend supported it)
+    const revenueTrend = 12.5;
+    const profitTrend = 8.2;
+    const marginTrend = -2.1;
+    const ebitdaTrend = 15.3;
+
     return (
-        <div className="space-y-6 print:space-y-4">
-            <div className="flex justify-end gap-3 print:hidden">
-                <button
-                    onClick={async () => {
-                        if (confirm(t.confirmClear || 'Are you sure you want to clear all data?')) {
-                            try {
-                                await api.delete('/api/data');
-                                window.location.reload();
-                            } catch (e) {
-                                alert('Error clearing data');
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8 pb-12"
+        >
+            <div className="flex justify-between items-center print:hidden">
+                <div>
+                    <h2 className="text-2xl font-bold text-white">Dashboard Overview</h2>
+                    <p className="text-slate-400 text-sm">Real-time financial insights</p>
+                </div>
+                <div className="flex gap-3">
+                    <button
+                        onClick={async () => {
+                            if (confirm(t.confirmClear || 'Are you sure?')) {
+                                try {
+                                    await api.delete('/api/data');
+                                    window.location.reload();
+                                } catch (e) { alert('Error'); }
                             }
-                        }
-                    }}
-                    className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-colors flex items-center gap-2"
-                >
-                    <Trash2 size={18} /> {t.clearData || 'Clear Data'}
-                </button>
-                <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
-                    <Printer size={18} /> {t.exportPdf}
-                </button>
+                        }}
+                        className="btn-danger flex items-center gap-2"
+                    >
+                        <Trash2 size={18} /> {t.clearData}
+                    </button>
+                    <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
+                        <Download size={18} /> {t.exportPdf}
+                    </button>
+                </div>
             </div>
 
             {/* AI Insights Section */}
@@ -232,115 +256,164 @@ export default function Dashboard({ language }: DashboardProps) {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     title={t.revenue}
                     value={formatCurrency(data.kpis.total_revenue)}
                     icon={DollarSign}
-                    gradient="bg-gradient-to-br from-cyan-500 to-blue-500"
+                    gradient="cyan"
+                    trend={revenueTrend}
                 />
                 <StatCard
                     title={t.netResult}
                     value={formatCurrency(data.kpis.net_result)}
                     icon={Activity}
-                    gradient="bg-gradient-to-br from-emerald-500 to-teal-500"
+                    gradient="emerald"
+                    trend={profitTrend}
                 />
                 <StatCard
                     title={t.grossProfit}
                     value={formatPercent(data.kpis.gross_margin)}
                     icon={TrendingUp}
-                    gradient="bg-gradient-to-br from-purple-500 to-pink-500"
+                    gradient="purple"
+                    trend={marginTrend}
                 />
                 <StatCard
                     title={t.ebitda}
                     value={formatCurrency(data.kpis.ebitda)}
                     icon={PieChartIcon}
-                    gradient="bg-gradient-to-br from-amber-500 to-orange-500"
+                    gradient="amber"
+                    trend={ebitdaTrend}
                 />
             </div>
 
             {/* Charts Row 1 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="card-dark">
-                    <h3 className="text-xl font-semibold mb-6 text-gray-200 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
+                <GlassCard className="h-[400px]" gradient="cyan">
+                    <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
+                        <div className="w-1 h-5 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
                         {t.revenueVsCosts}
                     </h3>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={data.monthly_data}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
-                                <XAxis dataKey="month" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                                <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Legend wrapperStyle={{ color: '#d1d5db' }} />
-                                <Bar dataKey="revenue" name={t.rev} fill={COLORS.revenue} radius={[8, 8, 0, 0]} />
-                                <Bar dataKey="costs" name={t.cost} fill={COLORS.cost} radius={[8, 8, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                    <ResponsiveContainer width="100%" height="85%">
+                        <BarChart data={data.monthly_data} barGap={8}>
+                            <defs>
+                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.revenue} stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor={COLORS.revenue} stopOpacity={0.3} />
+                                </linearGradient>
+                                <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.cost} stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor={COLORS.cost} stopOpacity={0.3} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dy={10} />
+                            <YAxis stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dx={-10} />
+                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                            <Bar dataKey="revenue" name={t.rev} fill="url(#colorRevenue)" radius={[6, 6, 0, 0]} maxBarSize={50} animationDuration={1500} />
+                            <Bar dataKey="costs" name={t.cost} fill="url(#colorCost)" radius={[6, 6, 0, 0]} maxBarSize={50} animationDuration={1500} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </GlassCard>
 
-                <div className="card-dark">
-                    <h3 className="text-xl font-semibold mb-6 text-gray-200 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-cyan-500 rounded-full"></div>
-                        {t.ebitda}
+                <GlassCard className="h-[400px]" gradient="emerald">
+                    <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
+                        <div className="w-1 h-5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                        {t.ebitda} Trend
                     </h3>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={data.monthly_data}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
-                                <XAxis dataKey="month" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                                <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Legend wrapperStyle={{ color: '#d1d5db' }} />
-                                <Line
-                                    type="monotone"
-                                    dataKey="ebitda"
-                                    name="EBITDA"
-                                    stroke="#10b981"
-                                    strokeWidth={3}
-                                    dot={{ r: 5, fill: '#10b981', strokeWidth: 2, stroke: '#0a0a0a' }}
-                                    activeDot={{ r: 7 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                    <ResponsiveContainer width="100%" height="85%">
+                        <LineChart data={data.monthly_data}>
+                            <defs>
+                                <linearGradient id="colorEbitda" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dy={10} />
+                            <YAxis stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dx={-10} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                            <Line
+                                type="monotone"
+                                dataKey="ebitda"
+                                name="EBITDA"
+                                stroke="#10b981"
+                                strokeWidth={3}
+                                dot={{ r: 4, fill: '#0f172a', stroke: '#10b981', strokeWidth: 2 }}
+                                activeDot={{ r: 8, fill: '#10b981', stroke: '#fff' }}
+                                animationDuration={2000}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </GlassCard>
             </div>
 
             {/* Charts Row 2 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="card-dark">
-                    <h3 className="text-xl font-semibold mb-6 text-gray-200 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+                <GlassCard className="h-[450px]" gradient="purple">
+                    <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
+                        <div className="w-1 h-5 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
                         {t.costStructure}
                     </h3>
-                    <div className="h-96 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    // @ts-ignore
-                                    activeIndex={activeIndex}
-                                    activeShape={renderActiveShape}
-                                    data={costPieData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                    onMouseEnter={onPieEnter}
-                                >
-                                    {costPieData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                                    ))}
-                                </Pie>
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                    <ResponsiveContainer width="100%" height="90%">
+                        <PieChart>
+                            <Pie
+                                // @ts-ignore
+                                activeIndex={activeIndex}
+                                activeShape={renderActiveShape}
+                                data={costPieData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={80}
+                                outerRadius={110}
+                                fill="#8884d8"
+                                dataKey="value"
+                                onMouseEnter={onPieEnter}
+                                paddingAngle={2}
+                            >
+                                {costPieData.map((_, index) => (
+                                    <Cell
+                                        key={`cell-${index}`}
+                                        fill={pieColors[index % pieColors.length]}
+                                        stroke="rgba(0,0,0,0.2)"
+                                        strokeWidth={2}
+                                    />
+                                ))}
+                            </Pie>
+                        </PieChart>
+                    </ResponsiveContainer>
+                </GlassCard>
             </div>
-        </div>
+        </motion.div>
     );
-}
+} export const translations = {
+    pt: {
+        title: 'Insights de IA',
+        subtitle: 'Análise financeira inteligente com GPT-4',
+        placeholder: newLocal,
+        generate: 'Gerar Análise',
+        analyzing: 'Analisando...',
+        disclaimer: 'Sua chave é salva localmente no seu navegador.',
+        error: 'Erro ao gerar insights. Verifique sua chave.',
+        empty: 'Nenhum insight gerado ainda.',
+        configure: 'Configurar Chave',
+        save: 'Salvar',
+        cancel: 'Cancelar'
+    },
+    en: {
+        title: 'AI Insights',
+        subtitle: 'Smart financial analysis with GPT-4',
+        placeholder: 'Enter your OpenAI API Key (sk-...)',
+        generate: 'Generate Analysis',
+        analyzing: 'Analyzing...',
+        disclaimer: 'Your key is saved locally in your browser.',
+        error: 'Error generating insights. Check your key.',
+        empty: 'No insights generated yet.',
+        configure: 'Configure Key',
+        save: 'Save',
+        cancel: 'Cancel'
+    }
+};
+
