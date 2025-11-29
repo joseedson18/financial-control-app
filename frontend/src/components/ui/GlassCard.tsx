@@ -19,21 +19,24 @@ export function GlassCard({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }} // Smooth cubic-bezier
             className={cn(
-                "relative overflow-hidden rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-xl p-6",
-                hoverEffect && "transition-all duration-300 hover:border-white/10 hover:bg-slate-900/60 hover:shadow-xl hover:-translate-y-1",
+                "liquid-glass p-8", // Use the new utility class
+                hoverEffect && "hover:scale-[1.01]", // Subtle scale on hover
                 className
             )}
         >
-            {/* Gradient Glow Effect */}
+            {/* Dynamic Light Reflection (Crystal Edge enhancement) */}
+            <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/10 pointer-events-none" />
+
+            {/* Gradient Glow Effect (Refined for Liquid look) */}
             {gradient !== "none" && (
                 <div className={cn(
-                    "absolute -top-24 -right-24 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none transition-opacity duration-500",
-                    gradient === "cyan" && "bg-cyan-500",
-                    gradient === "purple" && "bg-purple-500",
-                    gradient === "emerald" && "bg-emerald-500",
-                    gradient === "amber" && "bg-amber-500",
+                    "absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[80px] opacity-30 pointer-events-none transition-opacity duration-700 mix-blend-screen",
+                    gradient === "cyan" && "bg-cyan-400",
+                    gradient === "purple" && "bg-purple-400",
+                    gradient === "emerald" && "bg-emerald-400",
+                    gradient === "amber" && "bg-amber-400",
                 )} />
             )}
 
