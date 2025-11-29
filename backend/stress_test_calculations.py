@@ -182,5 +182,51 @@ class TestFinancialStress(unittest.TestCase):
         print(f"✅ Consistency Test Passed: {revenue:.2f} + {pp:.2f} + {cogs:.2f} = {gross_profit:.2f}")
         print(f"✅ Consistency Test Passed: {gross_profit:.2f} + {marketing:.2f} + {wages:.2f} = {ebitda:.2f}")
 
+    def test_fuzzy_matching(self):
+        """Test if substring matching works for suppliers"""
+        print("\nRunning Fuzzy Matching Test...")
+        data = [
+            # "GOOGLE BRASIL" should match "GOOGLE BRASIL PAGAMENTOS LTDA" mapping if logic is 'contains'
+            # Wait, logic is: if m.fornecedor_cliente in row.supplier
+            # Mapping: "GOOGLE BRASIL PAGAMENTOS LTDA"
+            # Row: "GOOGLE BRASIL" -> "GOOGLE BRASIL PAGAMENTOS LTDA" in "GOOGLE BRASIL" is FALSE.
+            # Row: "PAGAMENTO GOOGLE BRASIL PAGAMENTOS LTDA REF JAN" -> TRUE.
+            
+            # Let's test the reverse: Mapping is substring of Row?
+            # logic.py: if m_supp in supplier:
+            # So Mapping must be SHORTER or EQUAL to Row.
+            
+            # Mapping: "AWS"
+            # Row: "AWS SERVICOS DE COMPUTACAO" -> "AWS" in "AWS SERVICOS..." -> TRUE.
+            {
+                'Data de competência': pd.to_datetime('2024-01-01'), 
+                'Valor (R$)': -100.00, 
+                'Centro de Custo 1': 'Web Services Expenses', 
+                'Nome do fornecedor/cliente': 'AWS SERVICOS DE COMPUTACAO LTDA'
+            },
+            # Mapping: "MGA MARKETING LTDA"
+            # Row: "MGA MARKETING LTDA - NF 123" -> TRUE
+            {
+                'Data de competência': pd.to_datetime('2024-01-01'), 
+                'Valor (R$)': -500.00, 
+                'Centro de Custo 1': 'Marketing & Growth Expenses', 
+                'Nome do fornecedor/cliente': 'MGA MARKETING LTDA - NF 123'
+            }
+        ]
+        
+        df = self.create_dataframe(data)
+        result = calculate_pnl(df, self.mappings)
+        
+        cogs_row = [r for r in result.rows if 'COGS (Web Services)' in r.description][0]
+        val_cogs = cogs_row.values.get('2024-01', 0)
+        
+        self.assertEqual(val_cogs, -100.00, "Fuzzy match for AWS failed")
+        
+        marketing_row = [r for r in result.rows if 'Marketing' in r.description][0]
+        val_mkt = marketing_row.values.get('2024-01', 0)
+        
+        self.assertEqual(val_mkt, -500.00, "Fuzzy match for MGA failed")
+        print(f"✅ Fuzzy Matching Test Passed")
+
 if __name__ == "__main__":
     unittest.main()
