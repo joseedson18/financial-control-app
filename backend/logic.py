@@ -197,40 +197,68 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     months = sorted(filtered_df['Mes_Competencia'].dropna().unique())
     month_strs = [str(m) for m in months]
     
-    # Helper to sum values based on mapping
-    def get_value(mapping_item: MappingItem, month):
-        # Case-insensitive matching for Cost Center
-        mask = (
-            (filtered_df['Mes_Competencia'] == month) &
-            (filtered_df['Centro de Custo 1'].str.lower() == mapping_item.centro_custo.lower().strip())
-        )
-        
-        # Case-insensitive partial match for Supplier
-        if mapping_item.fornecedor_cliente != "Diversos":
-             mask &= (filtered_df['Nome do fornecedor/cliente'].astype(str).str.contains(mapping_item.fornecedor_cliente, case=False, na=False, regex=False))
-        
-        return filtered_df[mask]['Valor_Num'].sum()
+
 
     # Initialize data structure for calculations
-    # We'll use a dictionary to store values for each line number
     # line_values[line_num][month_str] = value
-    # Initialize line values for all possible line numbers used in calculations (up to 120)
     line_values = {i: {m: 0.0 for m in month_strs} for i in range(1, 121)}
 
-    # 1. Populate from Mappings (Raw Data)
+    # Optimize Mapping Lookups
+    # Specific: (centro_custo_lower, fornecedor_lower) -> mapping
+    # Generic: (centro_custo_lower) -> mapping
+    specific_mappings = {}
+    generic_mappings = {}
+    
     for m in mappings:
-        try:
-            line_num = int(m.linha_pl)
-        except:
+        cc_key = m.centro_custo.lower().strip()
+        if m.fornecedor_cliente and m.fornecedor_cliente != "Diversos":
+            # Specific mapping
+            supplier_key = m.fornecedor_cliente.lower().strip()
+            # Note: The mapping supplier is a substring match in the original logic.
+            # To maintain that behavior efficiently is tricky without regex.
+            # But iterating 10k rows x 50 mappings is slow.
+            # Let's stick to the original "find best match" logic but per row.
+            pass 
+        else:
+            # Generic mapping
+            generic_mappings[cc_key] = m
+
+    # Pre-process specific mappings list for iteration
+    specific_mappings_list = [m for m in mappings if m.fornecedor_cliente and m.fornecedor_cliente != "Diversos"]
+
+    # Iterate through DataFrame once
+    for _, row in filtered_df.iterrows():
+        month = str(row['Mes_Competencia'])
+        if month not in month_strs:
             continue
             
-        for mo in months:
-            val = get_value(m, mo)
-            # Adjust sign: In extract, expenses are negative. In P&L, we usually want them positive for subtraction logic or keep negative.
-            # Let's stick to: Revenue (+), Expenses (-) in the raw summation.
-            # But the P&L display usually shows costs as positive numbers that are subtracted.
-            # Let's keep raw signs for now and handle logic below.
-            line_values[line_num][str(mo)] += val
+        val = row['Valor_Num']
+        cc = str(row['Centro de Custo 1']).lower().strip()
+        supplier = str(row['Nome do fornecedor/cliente']).lower().strip()
+        
+        matched_mapping = None
+        
+        # 1. Try Specific Mappings (Substring match)
+        for m in specific_mappings_list:
+            m_cc = m.centro_custo.lower().strip()
+            m_supp = m.fornecedor_cliente.lower().strip()
+            
+            if cc == m_cc and m_supp in supplier:
+                matched_mapping = m
+                break
+        
+        # 2. If no specific match, try Generic Mapping
+        if not matched_mapping:
+            if cc in generic_mappings:
+                matched_mapping = generic_mappings[cc]
+        
+        # 3. If match found, add to line values
+        if matched_mapping:
+            try:
+                line_num = int(matched_mapping.linha_pl)
+                line_values[line_num][month] += val
+            except:
+                continue
 
     # 2. Calculate Derived Lines (Formulas)
     

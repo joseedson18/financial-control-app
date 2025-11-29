@@ -114,6 +114,7 @@ export const getFormulaBreakdown = (
     const googleRev = kpis.google_revenue || (paymentProcessing / 0.1765) * 0.55;
     const appleRev = kpis.apple_revenue || (paymentProcessing / 0.1765) * 0.45;
     const investIncome = totalRevenue - (googleRev + appleRev);
+    const revenueNoTax = googleRev + appleRev;
 
     switch (type) {
         case 'total_revenue':
