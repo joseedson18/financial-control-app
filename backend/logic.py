@@ -298,43 +298,114 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         wages = line_values[64][m]
         tech_support = line_values[68][m] + line_values[65][m] # Adobe + Diversos
         other_expenses = line_values[90][m]
+    # ========================================================================
+    # CALCULATE DERIVED VALUES FOR EACH MONTH
+    # ========================================================================
+    # This section computes all P&L line items from raw aggregated data.
+    # 
+    # Sign Convention:
+    #   - Revenues: Stored as POSITIVE values
+    #   - Costs/Expenses: Stored as NEGATIVE values (for P&L display)
+    #   - Intermediate calculations use ABSOLUTE values for clarity
+    #   - Totals: Can be positive (profit) or negative (loss)
+    # ========================================================================
+    
+    for m in month_strs:
         
         # ============================================
         # FINANCIAL CALCULATIONS WITH CORRECT SIGNS
         # ============================================
         
-        # 1. REVENUE (should be positive)
-        revenue_no_tax = google_rev + apple_rev  # Both positive
-        total_revenue = revenue_no_tax + invest_income  # All positive
+        # --------------------------------------------------------------------
+        # 1. TOTAL REVENUE CALCULATION
+        # --------------------------------------------------------------------
+        # Components:
+        #   - Google Play Net Revenue (line 25)
+        #   - App Store Net Revenue (line 33)
+        #   - Investment Income from Applications (line 38/49)
+        # Formula: Total Revenue = Google + Apple + Investments
+        # --------------------------------------------------------------------
+        google_rev = line_values[25].get(m, 0.0)      # Google Play
+        apple_rev = line_values[33].get(m, 0.0)       # App Store
+        invest_income = line_values[49].get(m, 0.0)   # Rendimentos
         
-        # 2. COST OF REVENUE (COGS)
-        # Payment Processing = 17.65% of Revenue no Tax (this is a cost, so negative)
-        payment_processing_cost = revenue_no_tax * 0.1765
+        total_revenue = google_rev + apple_rev + invest_income
+        revenue_no_tax = google_rev + apple_rev  # Revenue subject to payment processing
         
-        # COGS from CSV (already negative, convert to positive for calculation)
-        cogs_sum = abs(cogs_aws + cogs_cloudflare + cogs_heroku + cogs_iaphub + cogs_mailgun + cogs_ses)
+        # --------------------------------------------------------------------
+        # 2. PAYMENT PROCESSING COST  
+        # --------------------------------------------------------------------
+        # Both Google and Apple charge 17.65% commission on app revenue
+        # This is deducted before we receive payment
+        # Formula: Payment Processing = (Google + Apple) × 0.1765
+        # --------------------------------------------------------------------
+        payment_processing_rate = 0.1765
+        payment_processing_cost = revenue_no_tax * payment_processing_rate
         
-        # Total Cost of Revenue (as positive value)
-        total_cost_of_revenue = payment_processing_cost + cogs_sum
+        # --------------------------------------------------------------------
+        # 3. COST OF GOODS SOLD (COGS)
+        # --------------------------------------------------------------------
+        # Direct costs required to deliver the service
+        # Includes:
+        #   - AWS (Amazon Web Services) - Line 43
+        #   - Cloudflare - Line 44  
+        #   - Heroku - Line 45
+        #   - IAPHUB - Line 46
+        #   - MailGun - Line 47
+        #   - AWS SES - Line 48
+        # Formula: COGS = Sum of all web service expenses (lines 43-48)
+        # --------------------------------------------------------------------
+        cogs_sum = sum(abs(line_values[i].get(m, 0.0)) for i in range(43, 49))
         
-        # 3. GROSS PROFIT = Revenue - Cost of Revenue
-        gross_profit = total_revenue - total_cost_of_revenue
+        # --------------------------------------------------------------------
+        # 4. GROSS PROFIT
+        # --------------------------------------------------------------------
+        # Profitability after direct costs but before operating expenses
+        # Formula: Gross Profit = Total Revenue - Payment Processing - COGS
+        # --------------------------------------------------------------------
+        gross_profit = total_revenue - payment_processing_cost - cogs_sum
         
-        # 4. OPERATING EXPENSES
-        # Convert all negative expenses to positive for calculation
-        marketing_abs = abs(marketing)
-        wages_abs = abs(wages)
-        tech_support_abs = abs(tech_support)
-        other_expenses_abs = abs(other_expenses)
+        # --------------------------------------------------------------------
+        # 5. OPERATING EXPENSES (OpEx)
+        # --------------------------------------------------------------------
+        # Indirect costs required to run the business
+        # 
+        # SG&A (Selling, General & Administrative):
+        #   - Marketing & Growth Expenses (line 56)
+        #   - Employee Wages (line 62)
+        #   - Tech Support & Services (line 74)
+        # 
+        # Other Operating Expenses:
+        #   - Miscellaneous expenses not in SG&A (line 83)
+        # 
+        # Formula: Total OpEx = SG&A + Other Expenses
+        # --------------------------------------------------------------------
+        marketing_abs = abs(line_values[56].get(m, 0.0))      # Marketing
+        wages_abs = abs(line_values[62].get(m, 0.0))          # Salaries
+        tech_support_abs = abs(line_values[74].get(m, 0.0))   # Tech Support
+        other_expenses_abs = abs(line_values[83].get(m, 0.0)) # Other
         
         # Total SG&A and OpEx (as positive values)
         sga_total = marketing_abs + wages_abs + tech_support_abs
         total_opex = sga_total + other_expenses_abs
         
-        # 5. EBITDA = Gross Profit - Operating Expenses
+        # --------------------------------------------------------------------
+        # 6. EBITDA (Earnings Before Interest, Tax, Depreciation, Amortization)
+        # --------------------------------------------------------------------
+        # Key profitability metric showing operational efficiency
+        # Measures profit from core business operations
+        # Formula: EBITDA = Gross Profit - Operating Expenses
+        # --------------------------------------------------------------------
         ebitda = gross_profit - total_opex
         
-        # 6. Net Result = EBITDA (no financial expenses or taxes yet)
+        # --------------------------------------------------------------------
+        # 7. NET RESULT
+        # --------------------------------------------------------------------
+        # Bottom line profit/loss after all expenses
+        # Currently: Net Result = EBITDA (simplified)
+        # Future: Will include interest, taxes, depreciation, amortization
+        # Formula: Net Result = EBITDA - Interest - Tax - Depreciation - Amortization
+        # --------------------------------------------------------------------
         net_result = ebitda  # TODO: Add financial expenses and taxes when available
         
         # Store calculated values for P&L display
@@ -416,6 +487,7 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     add_row(12, "Outras Despesas", line_values[110])
     
     add_row(13, "(=) EBITDA", line_values[106], is_total=True)
+    add_row(16, "(=) RESULTADO LÍQUIDO", line_values[111], is_total=True)
     
     # Margins
     ebitda_margins = {}
