@@ -371,6 +371,24 @@ def validate_data(current_user: dict = Depends(get_current_user)):
         }
     }
 
+@app.post("/api/insights")
+def get_ai_insights(request: dict, current_user: dict = Depends(get_current_user)):
+    """
+    Generate AI insights from financial data using OpenAI.
+    """
+    try:
+        data = request.get("data", {})
+        api_key = request.get("api_key")
+        
+        if not data:
+            raise HTTPException(status_code=400, detail="No data provided")
+        
+        insights = generate_insights(data, api_key)
+        return {"insights": insights}
+    except Exception as e:
+        print(f"Error in /api/insights: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/dashboard", response_model=DashboardData)
 def get_dashboard(current_user: dict = Depends(get_current_user)):
     global current_df, current_mappings, current_overrides

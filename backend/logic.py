@@ -304,28 +304,7 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     
     # Let's define the P&L Structure based on these mapped lines.
     
-    calculated_lines = {}
-    
-    for m in month_strs:
-        # Raw aggregates from mapped lines
-        # Revenues are POSITIVE, Expenses are NEGATIVE in the CSV
-        google_rev = line_values[25][m] + line_values[26][m] + line_values[28][m] # Sum all Google lines
-        apple_rev = line_values[33][m] + line_values[34][m] + line_values[36][m] # Sum all Apple lines
-        invest_income = line_values[38][m]
-        
-        # COGS items (these come as NEGATIVE from CSV)
-        cogs_aws = line_values[43][m]
-        cogs_cloudflare = line_values[44][m]
-        cogs_heroku = line_values[45][m]
-        cogs_iaphub = line_values[46][m]
-        cogs_mailgun = line_values[47][m]
-        cogs_ses = line_values[48][m]
-        
-        # Operating expenses (these come as NEGATIVE from CSV)
-        marketing = line_values[56][m]
-        wages = line_values[64][m]
-        tech_support = line_values[68][m] + line_values[65][m] # Adobe + Diversos
-        other_expenses = line_values[90][m]
+    # Dead code removed - calculations happen in the loop below
     # ========================================================================
     # CALCULATE DERIVED VALUES FOR EACH MONTH
     # ========================================================================
@@ -353,9 +332,9 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         #   - Investment Income from Applications (line 38/49)
         # Formula: Total Revenue = Google + Apple + Investments
         # --------------------------------------------------------------------
-        google_rev = line_values[25].get(m, 0.0)      # Google Play
-        apple_rev = line_values[33].get(m, 0.0)       # App Store
-        invest_income = line_values[49].get(m, 0.0)   # Rendimentos
+        google_rev = line_values[25].get(m, 0.0)      # Google Play (Line 25)
+        apple_rev = line_values[33].get(m, 0.0)       # App Store (Line 33)
+        invest_income = line_values[38].get(m, 0.0)   # Rendimentos (Line 38 - FIXED)
         
         total_revenue = google_rev + apple_rev + invest_income
         revenue_no_tax = google_rev + apple_rev  # Revenue subject to payment processing
@@ -408,10 +387,10 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         # 
         # Formula: Total OpEx = SG&A + Other Expenses
         # --------------------------------------------------------------------
-        marketing_abs = abs(line_values[56].get(m, 0.0))      # Marketing
-        wages_abs = abs(line_values[62].get(m, 0.0))          # Salaries
-        tech_support_abs = abs(line_values[74].get(m, 0.0))   # Tech Support
-        other_expenses_abs = abs(line_values[83].get(m, 0.0)) # Other
+        marketing_abs = abs(line_values[56].get(m, 0.0))      # Marketing (Line 56 - correct)
+        wages_abs = abs(line_values[64].get(m, 0.0))          # Salaries (Line 64 - FIXED)
+        tech_support_abs = abs(line_values[68].get(m, 0.0)) + abs(line_values[65].get(m, 0.0))   # Tech Support (Lines 68+65 - FIXED)
+        other_expenses_abs = abs(line_values[90].get(m, 0.0)) # Other (Line 90 - FIXED)
         
         # Total SG&A and OpEx (as positive values)
         sga_total = marketing_abs + wages_abs + tech_support_abs
