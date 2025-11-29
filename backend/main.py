@@ -111,9 +111,7 @@ async def startup_event():
     """Load persisted data on startup"""
     load_data()
 
-@app.get("/")
-def read_root():
-    return {"message": "Financial Control API is running"}
+
 
 @app.post("/pnl/override")
 def update_pnl_override(data: dict):
@@ -408,11 +406,34 @@ def get_dashboard(current_user: dict = Depends(get_current_user)):
 
 # Serve the built frontend (Vite) from the dist folder
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 
 # Resolve the absolute path to the frontend build output (../frontend/dist)
 frontend_dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "message": "Financial Control API is running"}
+
 if os.path.exists(frontend_dist_path):
-    app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
+    # Mount assets specifically to avoid conflict with catch-all
+    assets_path = os.path.join(frontend_dist_path, "assets")
+    if os.path.exists(assets_path):
+        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+
+    # Catch-all route for SPA (React Router)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Check if the file exists in dist (e.g. favicon.ico, robots.txt)
+        file_path = os.path.join(frontend_dist_path, full_path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        
+        # Otherwise serve index.html for client-side routing
+        return FileResponse(os.path.join(frontend_dist_path, "index.html"))
 else:
     print(f"⚠️ Frontend build not found at {frontend_dist_path}. Serving API only.")
+    @app.get("/")
+    def read_root():
+        return {"message": "API running (Frontend not found)"}
