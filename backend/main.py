@@ -326,6 +326,51 @@ def get_pnl_line_transactions(
         "transactions": transactions
     }
 
+@app.get("/validate")
+def validate_data(current_user: dict = Depends(get_current_user)):
+    """
+    Validate calculation consistency between Dashboard and P&L.
+    Returns validation results and any errors found.
+    """
+    from validation import validate_dashboard_pnl_consistency, validate_calculation_logic
+    
+    global current_df, current_mappings, current_overrides
+    
+    if current_df is None:
+        load_data()
+    
+    if current_df is None or current_df.empty:
+        raise HTTPException(status_code=404, detail="No data loaded")
+    
+    # Calculate P&L and Dashboard
+    pnl_data = calculate_pnl(current_df, current_mappings, current_overrides)
+    dashboard_data = get_dashboard()
+    
+    # Run validations
+    dashboard_valid, dashboard_errors = validate_dashboard_pnl_consistency(
+        dashboard_data, pnl_data
+    )
+    
+    latest_month = pnl_data['headers'][-1] if pnl_data['headers'] else None
+    calc_valid = True
+    calc_errors = []
+    
+    if latest_month:
+        calc_valid, calc_errors = validate_calculation_logic(pnl_data, latest_month)
+    
+    return {
+        "valid": dashboard_valid and calc_valid,
+        "dashboard_validation": {
+            "valid": dashboard_valid,
+            "errors": dashboard_errors
+        },
+        "calculation_validation": {
+            "valid": calc_valid,
+            "errors": calc_errors,
+            "month_validated": latest_month
+        }
+    }
+
 @app.get("/dashboard", response_model=DashboardData)
 def get_dashboard(current_user: dict = Depends(get_current_user)):
     global current_df, current_mappings, current_overrides
