@@ -405,35 +405,91 @@ def get_dashboard(current_user: dict = Depends(get_current_user)):
     return get_dashboard_data(current_df, current_mappings, current_overrides)
 
 # Serve the built frontend (Vite) from the dist folder
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 import os
 
 # Resolve the absolute path to the frontend build output (../frontend/dist)
 frontend_dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
 
+print(f"🔍 Looking for frontend build at: {frontend_dist_path}")
+print(f"📁 Frontend build exists: {os.path.exists(frontend_dist_path)}")
+if os.path.exists(frontend_dist_path):
+    print(f"📄 Frontend build contents: {os.listdir(frontend_dist_path)}")
+
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "message": "Financial Control API is running"}
+    """API health check endpoint"""
+    return {
+        "status": "ok", 
+        "message": "Umatch BP Dashboard API",
+        "frontend_path": frontend_dist_path,
+        "frontend_exists": os.path.exists(frontend_dist_path)
+    }
 
-if os.path.exists(frontend_dist_path):
-    # Mount assets specifically to avoid conflict with catch-all
-    assets_path = os.path.join(frontend_dist_path, "assets")
-    if os.path.exists(assets_path):
-        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+# IMPORTANT: This must be the LAST route defined - it's a catch-all
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Serve SPA frontend or API 404"""
+    
+    # Handle empty path (root)
+    if full_path == "":
+        full_path = "index.html"
+    
+    # Check if frontend dist exists at all
+    if not os.path.exists(frontend_dist_path):
+        return HTMLResponse(
+            content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Build Missing</title></head>
+            <body style="font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px;">
+                <h1>❌ Frontend Build Not Found</h1>
+                <p>The frontend build directory is missing. This usually means the build command failed or hasn't run yet.</p>
+                <h2>Expected path:</h2>
+                <code style="background: #f5f5f5; padding: 10px; display: block;">{frontend_dist_path}</code>
+                <h2>To fix this on Render:</h2>
+                <ol>
+                    <li>Go to your Render dashboard</li>
+                    <li>Update the <strong>Build Command</strong> to:<br>
+                        <code style="background: #f5f5f5; padding: 10px; display: block; margin: 10px 0;">
+                        cd frontend && npm ci && npm run build && cd .. && pip install -r backend/requirements.txt
+                        </code>
+                    </li>
+                    <li>Click "Manual Deploy" → "Clear build cache & deploy"</li>
+                </ol>
+                <hr>
+                <p><a href="/api/health">Check API Health</a></p>
+            </body>
+            </html>
+            """,
+            status_code=503
+        )
+    
+    # Try to serve the requested file
+    file_path = os.path.join(frontend_dist_path, full_path)
+    
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    # If not found, serve index.html for SPA routing
+    index_path = os.path.join(frontend_dist_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    
+    # Complete failure
+    return HTMLResponse(
+        content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Build Incomplete</title></head>
+        <body style="font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px;">
+            <h1>⚠️ Frontend Build Incomplete</h1>
+            <p>The build directory exists but index.html is missing.</p>
+            <p>Build path: <code>{frontend_dist_path}</code></p>
+            <p>Files found: <code>{os.listdir(frontend_dist_path) if os.path.exists(frontend_dist_path) else 'N/A'}</code></p>
+        </body>
+        </html>
+        """,
+        status_code=500
+    )
 
-    # Catch-all route for SPA (React Router)
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        # Check if the file exists in dist (e.g. favicon.ico, robots.txt)
-        file_path = os.path.join(frontend_dist_path, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
-        
-        # Otherwise serve index.html for client-side routing
-        return FileResponse(os.path.join(frontend_dist_path, "index.html"))
-else:
-    print(f"⚠️ Frontend build not found at {frontend_dist_path}. Serving API only.")
-    @app.get("/")
-    def read_root():
-        return {"message": "API running (Frontend not found)"}
