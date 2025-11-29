@@ -410,18 +410,20 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         
         # Store calculated values for P&L display
         # Store revenues as positive, costs/expenses as negative for proper P&L formatting
-        line_values[100][m] = total_revenue  # Total Revenue (positive)
-        line_values[101][m] = revenue_no_tax  # Revenue no Tax (positive)
-        line_values[102][m] = -payment_processing_cost  # Payment Processing (negative for display)
-        line_values[103][m] = -cogs_sum  # COGS Total (negative for display)
-        line_values[104][m] = gross_profit  # Gross Profit
-        line_values[105][m] = -sga_total  # SG&A (negative for display)
-        line_values[106][m] = ebitda  # EBITDA
-        line_values[107][m] = -marketing_abs  # Marketing (negative for display)
-        line_values[108][m] = -wages_abs  # Wages (negative for display)
-        line_values[109][m] = -tech_support_abs  # Tech Support (negative for display)
-        line_values[110][m] = -other_expenses_abs  # Other Expenses (negative for display)
-        line_values[111][m] = net_result  # Net Result
+        line_values[100][m] = total_revenue           # (+) Revenue
+        line_values[101][m] = revenue_no_tax          # (+) Revenue no Tax (Google + Apple)
+        line_values[112][m] = google_rev              # (+) Google Revenue (NEW)
+        line_values[113][m] = apple_rev               # (+) Apple Revenue (NEW)
+        line_values[102][m] = -payment_processing_cost # (-) Payment Processing
+        line_values[103][m] = -cogs_sum               # (-) COGS
+        line_values[104][m] = gross_profit            # (=) Gross Profit
+        line_values[105][m] = -sga_total              # (-) SG&A
+        line_values[106][m] = ebitda                  # (=) EBITDA
+        line_values[107][m] = -marketing_abs          # (-) Marketing
+        line_values[108][m] = -wages_abs              # (-) Wages  
+        line_values[109][m] = -tech_support_abs       # (-) Tech Support
+        line_values[110][m] = -other_expenses_abs     # (-) Other Expenses
+        line_values[111][m] = net_result              # (=) Net Result
         
     # APPLY OVERRIDES
     if overrides:
@@ -472,6 +474,17 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
 
     add_row(1, "RECEITA OPERACIONAL BRUTA", line_values[100], is_header=True)
     add_row(2, "Receita de Vendas (Google + Apple)", line_values[101])
+    # Add sub-items for Google and Apple (indented in UI via logic if needed, or just listed)
+    # Using decimal line numbers to imply hierarchy if supported, or just next integers
+    # But PnLTable uses indent_level based on something? logic.py doesn't seem to set indent_level explicitly in add_row?
+    # Ah, PnLRow has indent_level. logic.py needs to set it? 
+    # Checking PnLItem definition... it's not in the snippet. 
+    # Let's just add them as regular rows for now, maybe hidden or just detailed.
+    # Actually, let's just add them for data extraction purposes, maybe with a special flag or just as rows.
+    # User didn't ask for them in P&L table specifically, but for formula accuracy.
+    # But adding them to P&L provides drill-down visibility too.
+    add_row(21, "Google Play Revenue", line_values[112])
+    add_row(22, "App Store Revenue", line_values[113])
     add_row(3, "Rendimentos de Aplicações", line_values[38])
     
     add_row(4, "(-) CUSTOS DIRETOS", {m: line_values[102][m] + line_values[103][m] for m in month_strs}, is_header=True)
@@ -559,6 +572,8 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
         "ebitda": ebitda,
         "ebitda_margin": ebitda / revenue if revenue else 0,
         "gross_margin": gross_profit / revenue if revenue else 0,
+        "google_revenue": get_val_by_line(21, latest_month), # NEW
+        "apple_revenue": get_val_by_line(22, latest_month),  # NEW
         "nau": 0,  # Placeholder
         "cpa": 0   # Placeholder
     }

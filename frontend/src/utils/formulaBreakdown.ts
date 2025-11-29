@@ -6,6 +6,8 @@ interface DashboardData {
         net_result?: number;
         ebitda_margin?: number;
         gross_margin?: number;
+        google_revenue?: number;
+        apple_revenue?: number;
     };
     monthly_data?: any[];
     cost_structure?: {
@@ -107,12 +109,11 @@ export const getFormulaBreakdown = (
     const ebitda = kpis.ebitda || grossProfit - totalOpex;
     const netResult = kpis.net_result || ebitda;
 
-    // TODO: Get actual Google/Apple revenue from backend
-    // For now, estimate based on total revenue and payment processing percentage
-    const revenueNoTax = paymentProcessing / 0.1765;
-    const googleRev = revenueNoTax * 0.55; // Estimate
-    const appleRev = revenueNoTax * 0.45;  // Estimate
-    const investIncome = totalRevenue - revenueNoTax;
+    // Revenue Breakdown (Actual values from backend)
+    // If backend doesn't provide specific breakdown, fallback to estimation but prefer actuals
+    const googleRev = kpis.google_revenue || (paymentProcessing / 0.1765) * 0.55;
+    const appleRev = kpis.apple_revenue || (paymentProcessing / 0.1765) * 0.45;
+    const investIncome = totalRevenue - (googleRev + appleRev);
 
     switch (type) {
         case 'total_revenue':
