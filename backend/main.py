@@ -162,7 +162,8 @@ def update_pnl_override(data: dict):
     return {"message": "Override saved"}
 
 @app.delete("/api/pnl/overrides")
-def clear_pnl_overrides(current_user: dict = Depends(get_current_user)):
+def clear_pnl_overrides():  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     """Clear all P&L overrides"""
     global current_overrides
     current_overrides = {}
@@ -191,7 +192,8 @@ def get_status():
     }
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+async def upload_file(file: UploadFile = File(...)):  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     global current_df
     content = await file.read()
     try:
@@ -202,7 +204,8 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/api/data")
-def clear_data(current_user: dict = Depends(get_current_user)):
+def clear_data():  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     """Clear all uploaded data"""
     global current_df
     current_df = None
@@ -214,18 +217,21 @@ def clear_data(current_user: dict = Depends(get_current_user)):
     return {"message": "Data cleared successfully"}
 
 @app.get("/mappings", response_model=List[MappingItem])
-def get_mappings(current_user: dict = Depends(get_current_user)):
+def get_mappings():  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     return current_mappings
 
 @app.post("/mappings")
-def update_mappings(update: MappingUpdate, current_user: dict = Depends(get_current_user)):
+def update_mappings(update: MappingUpdate):  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     global current_mappings
     current_mappings = update.mappings
     save_data()  # Persist to disk
     return {"message": "Mappings updated"}
 
 @app.delete("/api/mappings")
-def reset_mappings(current_user: dict = Depends(get_current_user)):
+def reset_mappings():  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     """Reset mappings to default"""
     global current_mappings
     current_mappings = get_initial_mappings()
@@ -236,7 +242,7 @@ def reset_mappings(current_user: dict = Depends(get_current_user)):
 def get_pnl(
     start_date: str = None, 
     end_date: str = None,
-    current_user: dict = Depends(get_current_user)
+    # current_user: dict = Depends(get_current_user)  # TEMP: Authentication disabled
 ):
     global current_df, current_overrides
     
@@ -254,7 +260,7 @@ def get_pnl(
 def get_pnl_line_transactions(
     line_number: int,
     month: str = None,
-    current_user: dict = Depends(get_current_user)
+    # current_user: dict = Depends(get_current_user)  # TEMP: Authentication disabled
 ):
     """
     Get all transactions that contribute to a specific P&L line.
@@ -354,7 +360,8 @@ def get_pnl_line_transactions(
     }
 
 @app.get("/validate")
-def validate_data(current_user: dict = Depends(get_current_user)):
+def validate_data():  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     """
     Validate calculation consistency between Dashboard and P&L.
     Returns validation results and any errors found.
@@ -399,7 +406,8 @@ def validate_data(current_user: dict = Depends(get_current_user)):
     }
 
 @app.post("/api/insights")
-def get_ai_insights(request: dict, current_user: dict = Depends(get_current_user)):
+def get_ai_insights(request: dict):  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     """
     Generate AI insights from financial data using OpenAI.
     """
@@ -417,7 +425,8 @@ def get_ai_insights(request: dict, current_user: dict = Depends(get_current_user
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/dashboard", response_model=DashboardData)
-def get_dashboard(current_user: dict = Depends(get_current_user)):
+def get_dashboard():  # TEMP: Authentication disabled
+    # current_user: dict = Depends(get_current_user)
     global current_df, current_mappings, current_overrides
     
     # Lazy load if data is missing but might exist on disk
