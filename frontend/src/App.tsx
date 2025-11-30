@@ -87,9 +87,10 @@ function App() {
     setActiveTab('upload');
   };
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
-  }
+  // TEMPORARILY DISABLED FOR DEPLOYMENT TESTING
+  // if (!isAuthenticated) {
+  //   return <Login onLogin={handleLogin} />;
+  // }
 
   const t = translations[language];
 
