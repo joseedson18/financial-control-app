@@ -6,7 +6,7 @@ import pandas as pd
 from models import MappingItem, MappingUpdate, DashboardData, PnLResponse
 from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data
 from ai_service import generate_insights
-from auth import Token, create_access_token, get_current_user, USERS_DB, verify_password, get_password_hash
+from auth import Token, create_access_token, get_current_user, USERS_DB, verify_password, get_password_hash, ACCESS_TOKEN_EXPIRE_MINUTES
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -21,7 +21,36 @@ load_dotenv()
 
 app = FastAPI()
 
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # ... (rest of imports)
+
+# Authentication endpoint
+@app.post("/api/login", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Login endpoint for admin users.
+    Accepts email as username and password, returns JWT access token.
+    """
+    user = USERS_DB.get(form_data.username)
+    if not user or not verify_password(form_data.password, user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": form_data.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # Data persistence configuration
 DATA_DIR = Path("./data")
