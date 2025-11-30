@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { LayoutDashboard, Upload, FileSpreadsheet, Settings, LogOut, Menu, Globe, X } from 'lucide-react';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import PnLTable from './components/PnLTable';
 import MappingManager from './components/MappingManager';
-import Login from './components/Login';
+// import Login from './components/Login';  // Temporarily disabled
 import { motion, AnimatePresence } from 'framer-motion';
 
 const translations = {
@@ -65,26 +65,12 @@ const translations = {
 function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'pnl' | 'mappings'>('upload');
   const [language, setLanguage] = useState<'pt' | 'en'>('pt');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  const handleLogin = (token: string) => {
-    localStorage.setItem('token', token);
-    setIsAuthenticated(true);
-    setActiveTab('dashboard');
-  };
-
   const handleLogout = () => {
+    // Logout disabled since login is disabled
     localStorage.removeItem('token');
-    setIsAuthenticated(false);
-    setActiveTab('upload');
+    window.location.reload();
   };
 
   // TEMPORARILY DISABLED FOR DEPLOYMENT TESTING
