@@ -284,6 +284,7 @@ export default function Dashboard({ language }: DashboardProps) {
                         icon={DollarSign}
                         gradient="cyan"
                         trend={revenueTrend}
+                        isNegative={data.kpis.total_revenue < 0}
                     />
                 </div>
                 <div onClick={() => showFormula('net_result')} className="cursor-pointer transition-all hover:scale-105">
@@ -293,6 +294,7 @@ export default function Dashboard({ language }: DashboardProps) {
                         icon={Activity}
                         gradient="emerald"
                         trend={profitTrend}
+                        isNegative={data.kpis.net_result < 0}
                     />
                 </div>
                 <div onClick={() => showFormula('gross_profit')} className="cursor-pointer transition-all hover:scale-105">
@@ -302,6 +304,7 @@ export default function Dashboard({ language }: DashboardProps) {
                         icon={TrendingUp}
                         gradient="purple"
                         trend={marginTrend}
+                        isNegative={data.kpis.gross_margin < 0}
                     />
                 </div>
                 <div onClick={() => showFormula('ebitda')} className="cursor-pointer transition-all hover:scale-105">
@@ -311,6 +314,7 @@ export default function Dashboard({ language }: DashboardProps) {
                         icon={PieChartIcon}
                         gradient="amber"
                         trend={ebitdaTrend}
+                        isNegative={data.kpis.ebitda < 0}
                     />
                 </div>
             </div>
