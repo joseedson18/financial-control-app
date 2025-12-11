@@ -297,7 +297,7 @@ export default function PnLTable({ language }: PnLTableProps) {
                                             }
 
                                             return (
-                                                <td key={month} className={`px-6 py-4 text-right relative group/cell ${isTotal ? 'font-bold' : ''
+                                                <td key={month} className={`px-6 py-4 text-right min-w-[120px] relative group/cell ${isTotal ? 'font-bold' : ''
                                                     }`}>
                                                     {isEditing ? (
                                                         <div className="flex items-center justify-end gap-2 absolute inset-0 px-2 bg-slate-800 z-20">
@@ -317,7 +317,7 @@ export default function PnLTable({ language }: PnLTableProps) {
                                                         </div>
                                                     ) : (
                                                         <div
-                                                            className={`flex items-center justify-end gap-2 ${!isHeader && val !== 0 ? 'cursor-pointer hover:bg-blue-900/20 transition-colors rounded px-2 -mx-2' : ''
+                                                            className={`flex items-center justify-end h-full ${!isHeader && val !== 0 ? 'cursor-pointer hover:bg-blue-900/20 transition-colors rounded px-2 -mx-2' : ''
                                                                 }`}
                                                             onClick={() => !isHeader && val !== 0 && handleCellClick(row, month, val)}
                                                             title={!isHeader && val !== 0 ? 'Clique para ver detalhes' : ''}
@@ -325,23 +325,29 @@ export default function PnLTable({ language }: PnLTableProps) {
                                                             <span className={valueColor}>
                                                                 {formatCurrency(val)}
                                                             </span>
-                                                            {!isHeader && !isTotal && val !== 0 && (
-                                                                <Calculator
-                                                                    size={14}
-                                                                    className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-slate-500 hover:text-cyan-400"
-                                                                />
-                                                            )}
-                                                            {!isHeader && !isTotal && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleEditClick(row.line_number, month, val);
-                                                                    }}
-                                                                    className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-slate-500 hover:text-cyan-400"
-                                                                >
-                                                                    <Edit2 size={12} />
-                                                                </button>
-                                                            )}
+
+                                                            {/* Action Icons - Absolute positioned to not affect alignment */}
+                                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                                                                {!isHeader && !isTotal && val !== 0 && (
+                                                                    <div className="bg-slate-900/80 p-1 rounded backdrop-blur-sm">
+                                                                        <Calculator
+                                                                            size={14}
+                                                                            className="text-slate-400 hover:text-cyan-400"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                {!isHeader && !isTotal && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleEditClick(row.line_number, month, val);
+                                                                        }}
+                                                                        className="bg-slate-900/80 p-1 rounded backdrop-blur-sm text-slate-400 hover:text-cyan-400"
+                                                                    >
+                                                                        <Edit2 size={12} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </td>

@@ -326,27 +326,35 @@ export default function Dashboard({ language }: DashboardProps) {
                         <div className="w-1 h-5 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
                         {t.revenueVsCosts}
                     </h3>
-                    <ResponsiveContainer width="100%" height="85%">
-                        <BarChart data={data.monthly_data} barGap={8}>
-                            <defs>
-                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={COLORS.revenue} stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor={COLORS.revenue} stopOpacity={0.3} />
-                                </linearGradient>
-                                <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={COLORS.cost} stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor={COLORS.cost} stopOpacity={0.3} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dy={10} />
-                            <YAxis stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dx={-10} />
-                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                            <Bar dataKey="revenue" name={t.rev} fill="url(#colorRevenue)" radius={[6, 6, 0, 0]} maxBarSize={50} animationDuration={1500} />
-                            <Bar dataKey="costs" name={t.cost} fill="url(#colorCost)" radius={[6, 6, 0, 0]} maxBarSize={50} animationDuration={1500} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <div className="h-[300px] w-full">
+                        {data.monthly_data.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={data.monthly_data} barGap={8} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorRevenueGraph" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={COLORS.revenue} stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor={COLORS.revenue} stopOpacity={0.3} />
+                                        </linearGradient>
+                                        <linearGradient id="colorCostGraph" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={COLORS.cost} stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor={COLORS.cost} stopOpacity={0.3} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dy={10} interval="preserveStartEnd" />
+                                    <YAxis stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dx={-10} width={60} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                    <Bar dataKey="revenue" name={t.rev} fill="url(#colorRevenueGraph)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                    <Bar dataKey="costs" name={t.cost} fill="url(#colorCostGraph)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-500">
+                                No chart data available
+                            </div>
+                        )}
+                    </div>
                 </GlassCard>
 
                 <GlassCard className="h-[400px]" gradient="emerald">
@@ -354,31 +362,38 @@ export default function Dashboard({ language }: DashboardProps) {
                         <div className="w-1 h-5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                         {t.ebitda} Trend
                     </h3>
-                    <ResponsiveContainer width="100%" height="85%">
-                        <LineChart data={data.monthly_data}>
-                            <defs>
-                                <linearGradient id="colorEbitda" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dy={10} />
-                            <YAxis stroke="#64748b" style={{ fontSize: '12px' }} axisLine={false} tickLine={false} dx={-10} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                            <Line
-                                type="monotone"
-                                dataKey="ebitda"
-                                name="EBITDA"
-                                stroke="#10b981"
-                                strokeWidth={3}
-                                dot={{ r: 4, fill: '#0f172a', stroke: '#10b981', strokeWidth: 2 }}
-                                activeDot={{ r: 8, fill: '#10b981', stroke: '#fff' }}
-                                animationDuration={2000}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <div className="h-[300px] w-full">
+                        {data.monthly_data.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={data.monthly_data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorEbitdaGraph" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dy={10} interval="preserveStartEnd" />
+                                    <YAxis stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dx={-10} width={60} />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="ebitda"
+                                        name="EBITDA"
+                                        stroke="#10b981"
+                                        strokeWidth={3}
+                                        dot={{ r: 4, fill: '#0f172a', stroke: '#10b981', strokeWidth: 2 }}
+                                        activeDot={{ r: 6, fill: '#10b981', stroke: '#fff' }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-500">
+                                No trend data available
+                            </div>
+                        )}
+                    </div>
                 </GlassCard>
             </div>
 
@@ -389,33 +404,41 @@ export default function Dashboard({ language }: DashboardProps) {
                         <div className="w-1 h-5 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
                         {t.costStructure}
                     </h3>
-                    <ResponsiveContainer width="100%" height="90%">
-                        <PieChart>
-                            <Pie
-                                // @ts-ignore
-                                activeIndex={activeIndex}
-                                activeShape={renderActiveShape}
-                                data={costPieData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={80}
-                                outerRadius={110}
-                                fill="#8884d8"
-                                dataKey="value"
-                                onMouseEnter={onPieEnter}
-                                paddingAngle={2}
-                            >
-                                {costPieData.map((_, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={pieColors[index % pieColors.length]}
-                                        stroke="rgba(0,0,0,0.2)"
-                                        strokeWidth={2}
-                                    />
-                                ))}
-                            </Pie>
-                        </PieChart>
-                    </ResponsiveContainer>
+                    <div className="h-[350px] w-full">
+                        {costPieData.some(d => d.value > 0) ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                    <Pie
+                                        // @ts-ignore
+                                        activeIndex={activeIndex}
+                                        activeShape={renderActiveShape}
+                                        data={costPieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={80}
+                                        outerRadius={110}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        onMouseEnter={onPieEnter}
+                                        paddingAngle={2}
+                                    >
+                                        {costPieData.map((_, index) => (
+                                            <Cell
+                                                key={`cell-${index}`}
+                                                fill={pieColors[index % pieColors.length]}
+                                                stroke="rgba(0,0,0,0.2)"
+                                                strokeWidth={2}
+                                            />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-500">
+                                No cost structure data available
+                            </div>
+                        )}
+                    </div>
                 </GlassCard>
             </div>
 
@@ -432,5 +455,8 @@ export default function Dashboard({ language }: DashboardProps) {
                 />
             )}
         </motion.div>
+    );
+}
+        </motion.div >
     );
 }
