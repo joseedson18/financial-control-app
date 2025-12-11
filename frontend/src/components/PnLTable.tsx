@@ -123,7 +123,28 @@ export default function PnLTable({ language }: PnLTableProps) {
     };
 
     const handleExport = () => {
-        alert('Export functionality coming soon!');
+        if (!data) return;
+
+        // Generate CSV content from P&L data
+        let csvContent = "Description," + data.headers.join(",") + "\n";
+
+        data.rows.forEach(row => {
+            const values = data.headers.map(header => {
+                const val = row.values[header] || 0;
+                return val.toFixed(2);
+            }).join(",");
+
+            csvContent += `"${row.description}",${values}\n`;
+        });
+
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `DRE_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
     const handleCellClick = async (row: PnLRow, month: string, value: number) => {
