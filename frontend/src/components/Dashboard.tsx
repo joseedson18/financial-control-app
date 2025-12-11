@@ -405,7 +405,7 @@ export default function Dashboard({ language }: DashboardProps) {
                         {t.costStructure}
                     </h3>
                     <div className="h-[350px] w-full">
-                        {costPieData.some(d => d.value > 0) ? (
+                        {costPieData.some((d: any) => d.value > 0) ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                                     <Pie
@@ -457,6 +457,4 @@ export default function Dashboard({ language }: DashboardProps) {
         </motion.div>
     );
 }
-        </motion.div >
-    );
-}
+
