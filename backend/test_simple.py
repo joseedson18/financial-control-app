@@ -8,70 +8,69 @@ def test_net_result_exists():
     from logic import calculate_pnl, get_initial_mappings
     import pandas as pd
     
-    # Create minimal sample data
+    # Create minimal sample data with all required columns
     df = pd.DataFrame({
-        'Data de competência': pd.date_range('2024-01-01', periods=1),
+        'Data de competência': ['2024-01-01'],
         'Mes_Competencia': ['2024-01'],
-        'Centro de Custo 1': ['Google Play Net Revenue'],
+        'Centro de Custo 1': ['GOOGLE PLAY'],
         'Nome do fornecedor/cliente': ['GOOGLE BRASIL PAGAMENTOS LTDA'],
-        'Valor (R$)': ['10.000,00'],
+        'Valor_Num': [10000.00],
+        'Fornecedor_Limpo': [' GOOGLE CLOUD'],
+        'Categoria': ['RECEITAS'],
         'Descrição': ['Test'],
         'Plano de contas': ['Revenue']
     })
-    
-    # Prepare data
-    from logic import prepare_dataframe
-    df = prepare_dataframe(df)
     
     # Calculate P&L
     result = calculate_pnl(df, get_initial_mappings())
     
     # Check that Net Result row exists
-    net_result_rows = [r for r in result['rows'] if 'RESULTADO LÍQUIDO' in r['description'].upper()]
+    net_result_rows = [r for r in result.rows if 'RESULTADO LÍQUIDO' in r.description.upper()]
     
     assert len(net_result_rows) > 0, "Net Result row missing from P&L"
-    assert net_result_rows[0]['is_total'] == True, "Net Result should be marked as total"
+    assert net_result_rows[0].is_total == True, "Net Result should be marked as total"
     
     print("✅ Net Result line exists in P&L")
 
 
 def test_ebitda_equals_net_result():
     """Test that Net Result currently equals EBITDA"""
-    from logic import calculate_pnl, get_initial_mappings, prepare_dataframe
+    from logic import calculate_pnl, get_initial_mappings
     import pandas as pd
     
-    # Create sample data
+    # Create sample data with all required columns
     df = pd.DataFrame({
-        'Data de competência': pd.date_range('2024-01-01', periods=3),
-        'Mes_Competencia': ['2024-01'] * 3,
+        'Data de competência': ['2024-01-01', '2024-01-02', '2024-01-03'],
+        'Mes_Competencia': ['2024-01', '2024-01', '2024-01'],
         'Centro de Custo 1': [
-            'Google Play Net Revenue',
-            'Web Services Expenses',
-            'Marketing & Growth Expenses'
+            'GOOGLE PLAY',
+            'COGS',
+            'MARKETING'
         ],
         'Nome do fornecedor/cliente': [
             'GOOGLE BRASIL PAGAMENTOS LTDA',
             'AWS',
             'MGA MARKETING LTDA'
         ],
-        'Valor (R$)': ['100.000,00', '-10.000,00', '-5.000,00'],
+        'Valor_Num': [100000.00, -10000.00, -5000.00],
+        'Fornecedor_Limpo': ['GOOGLE CLOUD', 'AWS', 'MARKETING'],
+        'Categoria': ['RECEITAS', 'CUSTOS', 'DESPESAS'],
         'Descrição': ['Revenue', 'AWS Cost', 'Marketing'],
         'Plano de contas': ['Revenue', 'Expense', 'Expense']
     })
     
-    df = prepare_dataframe(df)
     result = calculate_pnl(df, get_initial_mappings())
     
     # Find EBITDA and Net Result
-    ebitda_row = [r for r in result['rows'] if r['description'] == '(=) EBITDA'][0]
-    net_result_row = [r for r in result['rows'] if 'RESULTADO LÍQUIDO' in r['description'].upper()][0]
+    ebitda_row = [r for r in result.rows if r.description == '(=) EBITDA'][0]
+    net_result_row = [r for r in result.rows if 'RESULTADO LÍQUIDO' in r.description.upper()][0]
     
-    month = result['headers'][0]
+    month = result.headers[0]
     
-    assert ebitda_row['values'][month] == net_result_row['values'][month], \
+    assert ebitda_row.values[month] == net_result_row.values[month], \
         "Net Result should equal EBITDA (no financial expenses/taxes yet)"
     
-    print(f"✅ EBITDA ({ebitda_row['values'][month]:.2f}) equals Net Result ({net_result_row['values'][month]:.2f})")
+    print(f"✅ EBITDA ({ebitda_row.values[month]:.2f}) equals Net Result ({net_result_row.values[month]:.2f})")
 
 
 def test_validation_module():
