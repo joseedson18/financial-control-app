@@ -204,11 +204,11 @@ export default function PnLTable({ language }: PnLTableProps) {
             <GlassCard className="overflow-hidden p-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-900/80 text-slate-400 font-medium uppercase text-xs">
+                        <thead className="bg-gradient-to-r from-slate-900 to-slate-800 text-slate-300 font-semibold uppercase text-xs border-b-2 border-cyan-500/30">
                             <tr>
-                                <th className="px-6 py-4 sticky left-0 bg-slate-900/95 backdrop-blur-sm z-10 min-w-[300px]">Description</th>
+                                <th className="px-6 py-5 sticky left-0 bg-gradient-to-r from-slate-900 to-slate-800 backdrop-blur-sm z-10 min-w-[300px] tracking-wider">Description</th>
                                 {data.headers.map(header => (
-                                    <th key={header} className="px-6 py-4 text-right min-w-[120px]">{header}</th>
+                                    <th key={header} className="px-6 py-5 text-right min-w-[120px] tracking-wider font-bold">{header}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -216,6 +216,17 @@ export default function PnLTable({ language }: PnLTableProps) {
                             {filteredRows.map((row, index) => {
                                 const isHeader = row.is_header;
                                 const isTotal = row.is_total;
+
+                                // Determine if this is a revenue-related row
+                                const isRevenue = row.description.toLowerCase().includes('receita') ||
+                                    row.description.toLowerCase().includes('revenue') ||
+                                    row.description.toLowerCase().includes('vendas') ||
+                                    row.description.toLowerCase().includes('sales');
+
+                                // Determine if this is a profit/lucro row
+                                const isProfit = row.description.toLowerCase().includes('lucro') ||
+                                    row.description.toLowerCase().includes('profit') ||
+                                    row.description.toLowerCase().includes('resultado');
 
                                 return (
                                     <motion.tr
@@ -225,24 +236,48 @@ export default function PnLTable({ language }: PnLTableProps) {
                                         transition={{ delay: index * 0.02 }}
                                         className={`
                                             group transition-colors hover:bg-white/5
-                                            ${isHeader ? 'bg-slate-800/30 font-semibold text-cyan-400' : ''}
-                                            ${isTotal ? 'bg-slate-800/50 font-bold text-white border-t-2 border-white/10' : 'text-slate-300'}
+                                            ${isHeader ? 'bg-gradient-to-r from-slate-800/40 to-slate-800/20 font-semibold text-cyan-300 border-b border-cyan-900/30' : ''}
+                                            ${isTotal ? 'bg-gradient-to-r from-slate-800/60 to-slate-800/30 font-bold border-t-2 border-cyan-500/30 shadow-lg' : ''}
+                                            ${!isHeader && !isTotal ? 'border-b border-slate-800/50' : ''}
                                         `}
                                     >
-                                        <td className="px-6 py-3 sticky left-0 bg-slate-900/20 backdrop-blur-sm group-hover:bg-slate-800/40 transition-colors">
+                                        <td className={`px-6 py-4 sticky left-0 backdrop-blur-sm group-hover:bg-slate-800/40 transition-colors ${isHeader ? 'bg-slate-800/40' : isTotal ? 'bg-slate-800/60' : 'bg-slate-900/20'
+                                            }`}>
                                             <div className="flex items-center gap-2" style={{ paddingLeft: `${row.indent_level * 16}px` }}>
-                                                {isHeader && <ChevronDown size={14} />}
+                                                {isHeader && <ChevronDown size={14} className="text-cyan-400" />}
                                                 {!isHeader && !isTotal && <div className="w-4" />}
-                                                {row.description}
+                                                <span className={`${isHeader ? 'text-cyan-300 uppercase tracking-wide text-xs' : isTotal ? 'text-white' : 'text-slate-200'}`}>
+                                                    {row.description}
+                                                </span>
                                             </div>
                                         </td>
                                         {data.headers.map(month => {
                                             const val = row.values[month] || 0;
                                             const isEditing = editingCell?.line === row.line_number && editingCell?.month === month;
                                             const isNegative = val < 0;
+                                            const isPositive = val > 0;
+
+                                            // Determine color based on type and value
+                                            let valueColor = 'text-slate-400'; // Zero or default
+                                            if (isNegative) {
+                                                valueColor = 'text-red-400 font-semibold';
+                                            } else if (isRevenue && isPositive) {
+                                                valueColor = 'text-emerald-400 font-semibold';
+                                            } else if (isTotal || isProfit) {
+                                                if (isPositive) {
+                                                    valueColor = 'text-emerald-400 font-bold';
+                                                } else if (isNegative) {
+                                                    valueColor = 'text-red-400 font-bold';
+                                                } else {
+                                                    valueColor = 'text-white font-bold';
+                                                }
+                                            } else if (isPositive) {
+                                                valueColor = 'text-white';
+                                            }
 
                                             return (
-                                                <td key={month} className="px-6 py-3 text-right relative group/cell">
+                                                <td key={month} className={`px-6 py-4 text-right relative group/cell ${isTotal ? 'font-bold' : ''
+                                                    }`}>
                                                     {isEditing ? (
                                                         <div className="flex items-center justify-end gap-2 absolute inset-0 px-2 bg-slate-800 z-20">
                                                             <input
@@ -266,7 +301,7 @@ export default function PnLTable({ language }: PnLTableProps) {
                                                             onClick={() => !isHeader && val !== 0 && handleCellClick(row, month, val)}
                                                             title={!isHeader && val !== 0 ? 'Clique para ver detalhes' : ''}
                                                         >
-                                                            <span className={`${isNegative ? 'text-red-400' : (isTotal ? 'text-emerald-400' : 'text-slate-300')}`}>
+                                                            <span className={valueColor}>
                                                                 {formatCurrency(val)}
                                                             </span>
                                                             {!isHeader && !isTotal && val !== 0 && (
