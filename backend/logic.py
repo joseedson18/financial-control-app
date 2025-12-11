@@ -437,6 +437,9 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         line_values[110][m] = -other_expenses_abs     # (-) Other Expenses
         line_values[111][m] = net_result              # (=) Net Result
         
+        # Log calculation details for verification
+        logger.info(f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, Gross Profit={gross_profit:.2f}, Net Result={net_result:.2f}")
+        
     # APPLY OVERRIDES
     if overrides:
         for line_str, months_data in overrides.items():
