@@ -2,8 +2,13 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import io
+import logging
 from typing import List, Dict, Any
 from models import MappingItem, PnLItem, PnLResponse, DashboardData
+
+# Configure logging for financial calculations
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def process_upload(file_content: bytes) -> pd.DataFrame:
     """
