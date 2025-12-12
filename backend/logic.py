@@ -285,6 +285,11 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
             try:
                 line_num = int(matched_mapping.linha_pl)
                 line_values[line_num][month] += val
+                
+                # DEBUG: Log large matches
+                if abs(val) > 50000:
+                    description = matched_mapping.observacoes
+                    logger.info(f"MATCH (Active Loop): Line {line_num} ({description}) matched {val:.2f} | CC: '{cc}' | Forn: '{supplier}' | Mapping CC: '{matched_mapping.centro_custo}'")
             except:
                 continue
 
