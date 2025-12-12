@@ -30,8 +30,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             const token = response.data.access_token;
             onLogin(token);
-        } catch (err) {
-            setError('Invalid email or password');
+        } catch {
+            setError('Login falhou. Verifique suas credenciais.');
         } finally {
             setLoading(false);
         }

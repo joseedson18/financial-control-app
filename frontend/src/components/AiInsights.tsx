@@ -5,8 +5,14 @@ import ReactMarkdown from 'react-markdown';
 import { GlassCard } from './ui/GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface DashboardData {
+    kpis?: Record<string, number>;
+    monthly_data?: Record<string, unknown>[];
+    cost_structure?: Record<string, number>;
+}
+
 interface AiInsightsProps {
-    data: any;
+    data: DashboardData | null;
     language: 'pt' | 'en';
 }
 
@@ -59,6 +65,7 @@ export default function AiInsights({ data, language }: AiInsightsProps) {
         if (data && !insights && !loading && apiKey) {
             handleGenerate();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data, apiKey]);
 
     const handleSaveKey = (key: string) => {
@@ -84,9 +91,8 @@ export default function AiInsights({ data, language }: AiInsightsProps) {
                 api_key: apiKey
             });
             setInsights(response.data.insights);
-        } catch (err: any) {
-            console.error(err);
-            setError(err.response?.data?.detail || t.error);
+        } catch {
+            setError(t.error);
         } finally {
             setLoading(false);
         }

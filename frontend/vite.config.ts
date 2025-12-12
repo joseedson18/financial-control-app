@@ -11,8 +11,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'axios'],
           ui: ['framer-motion', 'lucide-react', 'clsx', 'tailwind-merge'],
-          charts: ['recharts'],
-          data: ['xlsx']
+          charts: ['recharts']
         }
       }
     }

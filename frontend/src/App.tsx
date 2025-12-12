@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { LayoutDashboard, Upload, FileSpreadsheet, Settings, LogOut, Menu, Globe, X } from 'lucide-react';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
@@ -62,18 +62,40 @@ const translations = {
   }
 };
 
+const NavItem = ({ id, label, icon: Icon, activeTab, onClick }: { id: string, label: string, icon: React.ElementType, activeTab: string, onClick: (id: string) => void }) => (
+  <button
+    onClick={() => onClick(id)}
+    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${activeTab === id
+      ? 'text-white shadow-[0_0_20px_rgba(6,182,212,0.2)] bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20'
+      : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+      }`}
+  >
+    {activeTab === id && (
+      <motion.div
+        layoutId="activeTab"
+        className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl"
+        initial={false}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      />
+    )}
+    <div className="relative z-10 flex items-center gap-3.5">
+      <Icon size={20} className={`transition-all duration-300 ${activeTab === id ? 'text-cyan-400 scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'text-slate-500 group-hover:text-cyan-200'}`} />
+      <span className={`font-medium transition-all duration-300 ${activeTab === id ? 'tracking-wide' : ''}`}>{label}</span>
+    </div>
+    {activeTab === id && (
+      <motion.div
+        layoutId="activeIndicator"
+        className="absolute right-3 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"
+      />
+    )}
+  </button>
+);
+
 function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'pnl' | 'mappings'>('upload');
   const [language, setLanguage] = useState<'pt' | 'en'>('pt');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsAuthenticated(true);
-    }
-  }, []);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('token'));
 
   const handleLogin = (token: string) => {
     localStorage.setItem('token', token);
@@ -107,37 +129,7 @@ function App() {
     }
   };
 
-  const NavItem = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
-    <button
-      onClick={() => {
-        setActiveTab(id);
-        setIsSidebarOpen(false);
-      }}
-      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${activeTab === id
-        ? 'text-white shadow-[0_0_20px_rgba(6,182,212,0.2)] bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20'
-        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-        }`}
-    >
-      {activeTab === id && (
-        <motion.div
-          layoutId="activeTab"
-          className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl"
-          initial={false}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        />
-      )}
-      <div className="relative z-10 flex items-center gap-3.5">
-        <Icon size={20} className={`transition-all duration-300 ${activeTab === id ? 'text-cyan-400 scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'text-slate-500 group-hover:text-cyan-200'}`} />
-        <span className={`font-medium transition-all duration-300 ${activeTab === id ? 'tracking-wide' : ''}`}>{label}</span>
-      </div>
-      {activeTab === id && (
-        <motion.div
-          layoutId="activeIndicator"
-          className="absolute right-3 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"
-        />
-      )}
-    </button>
-  );
+
 
   return (
     <div className="flex h-screen min-h-screen-safe bg-[#0B1120] text-white overflow-hidden font-sans selection:bg-cyan-500/30 relative">
@@ -177,10 +169,10 @@ function App() {
           </div>
 
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-none">
-            <NavItem id="upload" label={t.nav.upload} icon={Upload} />
-            <NavItem id="dashboard" label={t.nav.dashboard} icon={LayoutDashboard} />
-            <NavItem id="pnl" label={t.nav.pnl} icon={FileSpreadsheet} />
-            <NavItem id="mappings" label={t.nav.mappings} icon={Settings} />
+            <NavItem id="upload" label={t.nav.upload} icon={Upload} activeTab={activeTab} onClick={(id) => { setActiveTab(id as 'upload' | 'dashboard' | 'pnl' | 'mappings'); setIsSidebarOpen(false); }} />
+            <NavItem id="dashboard" label={t.nav.dashboard} icon={LayoutDashboard} activeTab={activeTab} onClick={(id) => { setActiveTab(id as 'upload' | 'dashboard' | 'pnl' | 'mappings'); setIsSidebarOpen(false); }} />
+            <NavItem id="pnl" label={t.nav.pnl} icon={FileSpreadsheet} activeTab={activeTab} onClick={(id) => { setActiveTab(id as 'upload' | 'dashboard' | 'pnl' | 'mappings'); setIsSidebarOpen(false); }} />
+            <NavItem id="mappings" label={t.nav.mappings} icon={Settings} activeTab={activeTab} onClick={(id) => { setActiveTab(id as 'upload' | 'dashboard' | 'pnl' | 'mappings'); setIsSidebarOpen(false); }} />
           </nav>
 
           <div className="p-4 border-t border-white/5">

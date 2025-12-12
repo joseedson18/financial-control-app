@@ -14,6 +14,16 @@ interface PnLRow {
     indent_level: number;
 }
 
+interface Transaction {
+    date: string;
+    month: string;
+    centro_custo: string;
+    fornecedor: string;
+    descricao: string;
+    valor: number;
+    categoria: string;
+}
+
 interface PnLData {
     headers: string[];
     rows: PnLRow[];
@@ -60,7 +70,7 @@ export default function PnLTable({ language }: PnLTableProps) {
         isOpen: boolean;
         title: string;
         value: number;
-        transactions: any[];
+        transactions: Transaction[];
         loading: boolean;
     } | null>(null);
     const t = translations[language];

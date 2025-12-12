@@ -9,7 +9,7 @@ interface DashboardData {
         google_revenue?: number;
         apple_revenue?: number;
     };
-    monthly_data?: any[];
+    monthly_data?: Array<Record<string, string | number>>;
     cost_structure?: {
         payment_processing?: number;
         cogs?: number;
@@ -172,7 +172,7 @@ export const getFormulaBreakdown = (
                 matlabFormula: `% ${labels.netResult}\n% Atualmente sem despesas financeiras ou impostos\nNet_Result = EBITDA\n\n% Fórmula completa (futura):\n% Net_Result = EBITDA - Financial_Expenses - Taxes\n\n% Valores:\nEBITDA = ${ebitda.toFixed(2)}\nNet_Result = ${netResult.toFixed(2)}`
             };
 
-        case 'ebitda_margin':
+        case 'ebitda_margin': {
             const ebitdaMargin = kpis.ebitda_margin || (totalRevenue ? (ebitda / totalRevenue) * 100 : 0);
             return {
                 title: labels.ebitdaMargin,
@@ -185,8 +185,9 @@ export const getFormulaBreakdown = (
                 ],
                 matlabFormula: `% ${labels.ebitdaMargin}\nEBITDA_Margin = (EBITDA / Total_Revenue) * 100\n\n% Valores:\nEBITDA = ${ebitda.toFixed(2)}\nTotal_Revenue = ${totalRevenue.toFixed(2)}\nEBITDA_Margin = ${ebitdaMargin.toFixed(2)}%`
             };
+        }
 
-        case 'gross_margin':
+        case 'gross_margin': {
             const grossMargin = kpis.gross_margin || (totalRevenue ? (grossProfit / totalRevenue) * 100 : 0);
             return {
                 title: labels.grossMargin,
@@ -199,6 +200,7 @@ export const getFormulaBreakdown = (
                 ],
                 matlabFormula: `% ${labels.grossMargin}\nGross_Margin = (Gross_Profit / Total_Revenue) * 100\n\n% Valores:\nGross_Profit = ${grossProfit.toFixed(2)}\nTotal_Revenue = ${totalRevenue.toFixed(2)}\nGross_Margin = ${grossMargin.toFixed(2)}%`
             };
+        }
 
         // Cost structure breakdowns
         case 'payment_processing':
@@ -217,15 +219,15 @@ export const getFormulaBreakdown = (
         case 'marketing':
         case 'wages':
         case 'tech':
-        case 'other':
-            const valueMap = {
+        case 'other': {
+            const valueMap: Record<string, number> = {
                 cogs,
                 marketing,
                 wages,
                 tech,
                 other
             };
-            const labelMap = {
+            const labelMap: Record<string, string> = {
                 cogs: labels.cogs,
                 marketing: labels.marketing,
                 wages: labels.wages,
@@ -233,17 +235,18 @@ export const getFormulaBreakdown = (
                 other: labels.otherExpenses
             };
             return {
-                title: labelMap[type as keyof typeof labelMap],
-                value: valueMap[type as keyof typeof valueMap],
+                title: labelMap[type],
+                value: valueMap[type],
                 breakdown: [
                     {
                         label: labels.total,
-                        value: valueMap[type as keyof typeof valueMap],
+                        value: valueMap[type],
                         symbol: '='
                     }
                 ],
-                matlabFormula: `% ${labelMap[type as keyof typeof labelMap]}\nTotal = ${valueMap[type as keyof typeof valueMap].toFixed(2)}`
+                matlabFormula: `% ${labelMap[type]}\nTotal = ${valueMap[type].toFixed(2)}`
             };
+        }
 
         default:
             return null;

@@ -75,21 +75,23 @@ export default function FileUpload({ language }: FileUploadProps) {
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
-        } catch (error: any) {
-            setStatus('error');
+        } catch (error: unknown) {
+            console.error('Error:', error);
             console.error('Upload error:', error);
 
             // Better error messaging
-            if (error.response) {
+            if (error instanceof Error) {
+                setMessage(`${t.error} ${error.message || t.unknownError}`);
+            } else if (typeof error === 'object' && error !== null && 'response' in error && typeof (error as any).response === 'object' && (error as any).response !== null) {
                 // Server responded with error
-                const detail = error.response.data?.detail || error.response.data?.message || t.unknownError;
+                const detail = (error as any).response?.data?.detail || (error as any).response?.data?.message || t.unknownError;
                 setMessage(`${t.error} ${detail}`);
-            } else if (error.request) {
+            } else if (typeof error === 'object' && error !== null && 'request' in error) {
                 // Request made but no response
                 setMessage(t.serverError);
             } else {
                 // Something else happened
-                setMessage(`${t.error} ${error.message || t.unknownError}`);
+                setMessage(`${t.error} ${t.unknownError}`);
             }
         }
     };
@@ -188,7 +190,7 @@ export default function FileUpload({ language }: FileUploadProps) {
                             try {
                                 await api.delete('/api/data');
                                 window.location.reload();
-                            } catch (e) {
+                            } catch {
                                 alert('Error clearing data');
                             }
                         }

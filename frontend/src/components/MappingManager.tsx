@@ -157,7 +157,7 @@ export default function MappingManager({ language }: MappingManagerProps) {
                                 try {
                                     await api.delete('/api/mappings');
                                     window.location.reload();
-                                } catch (e) {
+                                } catch {
                                     alert('Error resetting mappings');
                                 }
                             }

@@ -258,7 +258,7 @@ export default function Dashboard({ language }: DashboardProps) {
                                 try {
                                     await api.delete('/api/data');
                                     window.location.reload();
-                                } catch (e) { alert('Error'); }
+                                } catch { alert('Error'); }
                             }
                         }}
                         className="btn-danger flex items-center justify-center gap-2 w-full sm:w-auto text-sm"
