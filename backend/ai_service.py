@@ -44,10 +44,19 @@ def generate_insights(data: dict, api_key: str = None) -> str:
         Monthly Trends (Revenue, Costs, Net Result):
         {json.dumps(monthly_summary, indent=2)}
         
-        Please provide:
-        1. A sincere opinion on the current financial situation.
-        2. 3-5 specific recommendations to improve profitability or reduce costs.
-        3. Highlight any worrying trends.
+        Please provide the output in TWO sections:
+        
+        ### 🇧🇷 Análise Financeira (PT-BR)
+        1. Opinião sincera sobre a situação atual.
+        2. 3-5 recomendações específicas.
+        3. Tendências preocupantes.
+
+        ---
+
+        ### 🇺🇸 Financial Analysis (English)
+        1. Sincere opinion on the current situation.
+        2. 3-5 specific recommendations.
+        3. Highlight worrying trends.
         
         Format the output in Markdown. Be professional but direct.
         """
