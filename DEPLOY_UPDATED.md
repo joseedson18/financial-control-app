@@ -25,7 +25,8 @@ The provided `render.yaml` and `backend/Dockerfile` are wired for Render's docke
 3. Set the minimum environment variables in Render (the YAML will pre-create most keys):
    - `SECRET_KEY` (auto-generated on first deploy unless you override)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` **or** `ADMIN_USERS_JSON`
-   - `FRONTEND_URL` or `FRONTEND_URLS` if you need to whitelist multiple origins
+   - `FRONTEND_URL` / `FRONTEND_URLS` are auto-synced from the static frontend service via `fromService`; override only if you
+     are hosting the frontend elsewhere.
 4. On deployment, Render will build the image with Python 3.11, install `backend/requirements.txt`, copy the `backend/`
    package, and launch `uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}`.
 5. If you need to run locally using the same container definition, execute:

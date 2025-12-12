@@ -12,7 +12,12 @@ services:
           type: web
           name: financial-control-frontend
           property: url
-        # Update this after deploying the frontend
+      - key: FRONTEND_URLS
+        fromService:
+          type: web
+          name: financial-control-frontend
+          property: url
+        # Provides the backend with the deployed frontend origin for CORS.
       - key: SECRET_KEY
         generateValue: true
       - key: ADMIN_EMAIL
@@ -21,8 +26,6 @@ services:
         sync: false
       - key: ADMIN_NAME
         value: "Administrator"
-      - key: FRONTEND_URLS
-        value: "${FRONTEND_URL}"
     # Persistent disk for data storage
     disk:
       name: data-storage
