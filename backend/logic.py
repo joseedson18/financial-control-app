@@ -236,7 +236,7 @@ def get_initial_mappings() -> List[MappingItem]:
         # SG&A
         ["SG&A", "Marketing & Growth Expenses", "MGA MARKETING LTDA", "56", "Despesa", "Sim", "Marketing"],
         ["SG&A", "Marketing & Growth Expenses", "Diversos", "56", "Despesa", "Sim", "Marketing - Diversos"],
-        ["SG&A", "Wages Expenses", "Diversos", "64", "Despesa", "Sim", "Salários e Pró-labore"],
+        ["SG&A", "Wages Expenses", "Diversos", "62", "Despesa", "Sim", "Salários e Pró-labore"],
         ["SG&A", "Tech Support & Services", "Adobe", "68", "Despesa", "Sim", "Adobe Creative Cloud"],
         ["SG&A", "Tech Support & Services", "Canva", "68", "Despesa", "Sim", "Canva"],
         ["SG&A", "Tech Support & Services", "ClickSign", "68", "Despesa", "Sim", "ClickSign"],
@@ -495,7 +495,7 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         # Formula: Total OpEx = SG&A + Other Expenses
         # --------------------------------------------------------------------
         marketing_abs = abs(line_values[56].get(m, 0.0))      # Marketing (Line 56 - correct)
-        wages_abs = abs(line_values[64].get(m, 0.0))          # Salaries (Line 64 - FIXED)
+        wages_abs = abs(line_values[62].get(m, 0.0))          # Salaries (Line 62 - FIXED)
         tech_support_abs = abs(line_values[68].get(m, 0.0)) + abs(line_values[65].get(m, 0.0))   # Tech Support (Lines 68+65 - FIXED)
         other_expenses_abs = abs(line_values[90].get(m, 0.0)) # Other (Line 90 - FIXED)
         
