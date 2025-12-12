@@ -8,7 +8,10 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: FRONTEND_URL
-        value: https://financial-control-appfinancial-control.onrender.com
+        fromService:
+          type: web
+          name: financial-control-appfinancial-control
+          property: url
         # Update this after deploying the frontend
     # Persistent disk for data storage
     disk:
@@ -24,4 +27,7 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://financial-control-backend-2hmh.onrender.com
+        fromService:
+          type: web
+          name: financial-control-backend
+          property: url
