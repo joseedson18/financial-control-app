@@ -43,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="text-center mb-8">
                     <div className="w-24 h-24 mx-auto mb-4">
                         <img
-                            src="/logo.png"
+                            src="/logo.webp"
                             alt="UMatch Logo"
                             className="w-full h-full object-contain rounded-xl"
                         />
