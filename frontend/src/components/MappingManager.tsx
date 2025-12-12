@@ -201,17 +201,17 @@ export default function MappingManager({ language }: MappingManagerProps) {
             <GlassCard className="overflow-hidden p-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-900/80 text-slate-400 font-medium uppercase">
+                        <thead className="bg-[#0f172a] text-slate-400 font-semibold uppercase text-[11px] tracking-wider border-b border-white/10">
                             <tr>
-                                <th className="px-6 py-4">{t.headers.financialGroup}</th>
-                                <th className="px-6 py-4">{t.headers.costCenter}</th>
-                                <th className="px-6 py-4">{t.headers.supplier}</th>
-                                <th className="px-6 py-4">{t.headers.plLine}</th>
-                                <th className="px-6 py-4">{t.headers.type}</th>
+                                <th className="px-6 py-4 text-left">{t.headers.financialGroup}</th>
+                                <th className="px-6 py-4 text-left">{t.headers.costCenter}</th>
+                                <th className="px-6 py-4 text-left">{t.headers.supplier}</th>
+                                <th className="px-6 py-4 text-left">{t.headers.plLine}</th>
+                                <th className="px-6 py-4 text-left">{t.headers.type}</th>
                                 <th className="px-6 py-4 text-center">{t.headers.actions}</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-white/[0.02]">
                             <AnimatePresence>
                                 {filteredMappings.map((item, index) => (
                                     <motion.tr
@@ -219,54 +219,54 @@ export default function MappingManager({ language }: MappingManagerProps) {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
-                                        className="hover:bg-white/5 transition-colors group"
+                                        className="group transition-colors odd:bg-transparent even:bg-white/[0.02] hover:!bg-white/[0.04]"
                                     >
-                                        <td className="px-6 py-3">
+                                        <td className="px-6 py-4">
                                             <input
                                                 type="text"
                                                 value={item.grupo_financeiro}
                                                 onChange={(e) => handleChange(index, 'grupo_financeiro', e.target.value)}
-                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-white p-0"
+                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-cyan-300 p-0 placeholder-slate-600"
                                             />
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-6 py-4">
                                             <input
                                                 type="text"
                                                 value={item.centro_custo}
                                                 onChange={(e) => handleChange(index, 'centro_custo', e.target.value)}
-                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-white p-0"
+                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-cyan-300 p-0 placeholder-slate-600"
                                             />
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-6 py-4">
                                             <input
                                                 type="text"
                                                 value={item.fornecedor_cliente}
                                                 onChange={(e) => handleChange(index, 'fornecedor_cliente', e.target.value)}
-                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-white p-0"
+                                                className="bg-transparent border-none w-full text-slate-300 focus:ring-0 focus:text-cyan-300 p-0 placeholder-slate-600"
                                             />
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-6 py-4">
                                             <input
                                                 type="text"
                                                 value={item.linha_pl}
                                                 onChange={(e) => handleChange(index, 'linha_pl', e.target.value)}
-                                                className="bg-transparent border-none w-full text-cyan-400 font-mono focus:ring-0 p-0"
+                                                className="bg-transparent border-none w-full text-cyan-400 font-mono focus:ring-0 p-0 placeholder-slate-600"
                                             />
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-6 py-4">
                                             <select
                                                 value={item.tipo}
                                                 onChange={(e) => handleChange(index, 'tipo', e.target.value)}
-                                                className="bg-transparent border-none text-slate-300 focus:ring-0 p-0 focus:text-white"
+                                                className="bg-transparent border-none text-slate-300 focus:ring-0 p-0 focus:text-cyan-300 cursor-pointer"
                                             >
-                                                <option value="Despesa" className="bg-slate-900">Despesa</option>
-                                                <option value="Receita" className="bg-slate-900">Receita</option>
+                                                <option value="Despesa" className="bg-slate-900 text-slate-300">Despesa</option>
+                                                <option value="Receita" className="bg-slate-900 text-slate-300">Receita</option>
                                             </select>
                                         </td>
-                                        <td className="px-6 py-3 text-center">
+                                        <td className="px-6 py-4 text-center">
                                             <button
                                                 onClick={() => handleDelete(index)}
-                                                className="text-slate-500 hover:text-red-400 p-1 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                                className="text-slate-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 transform hover:scale-110"
                                             >
                                                 <Trash2 size={16} />
                                             </button>

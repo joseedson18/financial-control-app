@@ -85,26 +85,26 @@ export default function FormulaModal({
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ duration: 0.2 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-slate-800 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl"
+                    className="glass-heavy rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl relative"
                 >
                     {/* Header */}
-                    <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-6 flex items-start justify-between">
+                    <div className="sticky top-0 bg-[#0f172a]/95 backdrop-blur-xl border-b border-white/10 p-6 flex items-start justify-between z-10">
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 text-xs text-blue-400 mb-2">
+                            <div className="flex items-center gap-2 text-xs text-cyan-400 mb-2 font-medium tracking-wide uppercase">
                                 <Calculator size={14} />
                                 <span>{t.auditNote}</span>
                             </div>
-                            <h2 className="text-2xl font-bold text-white mb-1">{title}</h2>
-                            <div className="text-3xl font-bold text-blue-400">
+                            <h2 className="text-2xl font-bold text-white mb-1 tracking-tight">{title}</h2>
+                            <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                                 {formatCurrency(value)}
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                             aria-label={t.close}
                         >
-                            <X size={20} className="text-gray-400" />
+                            <X size={20} />
                         </button>
                     </div>
 
@@ -133,7 +133,7 @@ export default function FormulaModal({
                                     <h3 className="text-lg font-semibold text-gray-200">{t.calculation}</h3>
                                 </div>
 
-                                <div className="bg-slate-900 rounded-xl p-6 border border-slate-700 font-mono text-sm">
+                                <div className="glass-panel p-6 rounded-xl font-mono text-sm bg-black/20">
                                     {breakdown.map((step, index) => {
                                         const isResult = step.symbol === '=';
 

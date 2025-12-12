@@ -93,7 +93,7 @@ export default function TransactionList({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="p-4 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+                        className="p-4 glass-panel border border-white/5 hover:border-white/10 transition-all rounded-xl"
                     >
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
