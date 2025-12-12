@@ -3,9 +3,9 @@ services:
   - type: web
     name: financial-control-backend
     runtime: docker
-    rootDir: backend
+    rootDir: .
     plan: starter
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: FRONTEND_URL
         fromService:

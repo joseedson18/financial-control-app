@@ -13,3 +13,24 @@ HOST=0.0.0.0 PORT=8000 WORKERS=2 RELOAD=false ./run_backend.sh
 
 The script binds to `HOST`/`PORT` with configurable workers and optional reload, making it suitable for containerized deployments
 and Render-style environments.
+
+## Render (Docker) deployment
+
+The provided `render.yaml` and `backend/Dockerfile` are wired for Render's docker runtime:
+
+1. Confirm `render.yaml` is present at the repo root (Render will auto-detect it). The backend service now references
+   `backend/Dockerfile` from the repository root, ensuring the package layout is preserved during the build.
+2. Set the minimum environment variables in Render:
+   - `SECRET_KEY` (long random string)
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` **or** `ADMIN_USERS_JSON`
+   - `FRONTEND_URL` (Render will auto-fill from the static site if both services are deployed together)
+3. On deployment, Render will build the image with Python 3.11, install `backend/requirements.txt`, copy the `backend/`
+   package, and launch `uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}`.
+4. If you need to run locally using the same container definition, execute:
+
+```bash
+docker build -f backend/Dockerfile -t financial-control .
+docker run --rm -p 8000:8000 \
+  -e ADMIN_EMAIL=you@example.com -e ADMIN_PASSWORD=strongpass \
+  financial-control
+```

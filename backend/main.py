@@ -3,10 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List
 import pandas as pd
-from models import MappingItem, MappingUpdate, DashboardData, PnLResponse
-from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data, calculate_forecast
-from ai_service import generate_insights
-from auth import (
+from backend.models import MappingItem, MappingUpdate, DashboardData, PnLResponse
+from backend.logic import (
+    process_upload,
+    get_initial_mappings,
+    calculate_pnl,
+    get_dashboard_data,
+    calculate_forecast,
+)
+from backend.ai_service import generate_insights
+from backend.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     Token,
     create_access_token,
