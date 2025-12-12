@@ -308,7 +308,7 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     Calculate P&L based on dataframe and mappings.
     Optionally filter by date range.
     """
-    if df is None:
+    if df is None or df.empty:
         return PnLResponse(headers=[], rows=[])
     
     # Apply date filter if provided

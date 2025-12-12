@@ -273,3 +273,53 @@ class TestEdgeCases:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+class TestMappingLogic:
+    """Test the improved mapping logic (Generic Fallback + Description Match)"""
+    
+    def test_generic_fallback(self):
+        """Verify that a row with unknown supplier matches the Generic mapping for its Cost Center"""
+        # Row has Cost Center "Web Services Expenses" but Supplier "Unknown Tech"
+        # Should match "Web Services - Generic" (Line 43)
+        df = create_test_dataframe([
+            {'supplier': 'Unknown Tech', 'value': -50.0, 'month': '2024-01', 'cost_center': 'Web Services Expenses'},
+        ])
+        # Mappings: Specific (AWS->43) and Generic (Diversos->43)
+        mappings = [
+            create_mapping("AWS", "43", "Web Services Expenses", "Custo"),
+            create_mapping("Diversos", "43", "Web Services Expenses", "Custo"),
+        ]
+        
+        pnl = calculate_pnl(df, mappings)
+        
+        # Should be in COGS (Line 6 -> derived from 43)
+        cogs_row = next((r for r in pnl.rows if r.line_number == 6), None) # COGS
+        assert cogs_row is not None
+        val = cogs_row.values.get('2024-01', 0)
+        assert val == -50.0  # Should define it as cost (negative in P&L if logic applies sign, wait. logic applies abs() then subtracts, so -50 becomes -50 in COGS row)
+        # Verify: Logic says `cogs_sum = sum(abs(...))`. PnA item 103 = -cogs_sum. Row 6 values = line_values[103]. So -50. Correct.
+
+    def test_description_matching(self):
+        """Verify that we match based on Description if Supplier is empty or mismatching"""
+        # Row has Supplier empty but Description "Payment to AWS for services"
+        # Should match "AWS" specific mapping
+        df = pd.DataFrame({
+            'Mes_Competencia': ['2024-01'],
+            'Valor_Num': [-100.0],
+            'Centro de Custo 1': ['Web Services Expenses'],
+            'Nome do fornecedor/cliente': [''], # Empty supplier
+            'Descrição': ['Payment to AWS for usage'], # Description contains "AWS"
+            'Categoria': ['Custo']
+        })
+        mappings = [
+            create_mapping("AWS", "43", "Web Services Expenses", "Custo"),
+        ]
+        
+        pnl = calculate_pnl(df, mappings)
+        
+        # Check COGS line (Line 43 accumulates to Line 6/103)
+        # Line 6 is COGS.
+        cogs_row = next((r for r in pnl.rows if r.line_number == 6), None)
+        assert cogs_row is not None
+        assert cogs_row.values['2024-01'] == -100.0
+
