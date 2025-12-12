@@ -106,7 +106,7 @@ export default function FileUpload({ language }: FileUploadProps) {
 
 
                 {/* Icon Header */}
-                <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-[0_0_30px_rgba(6,182,212,0.2)] border border-white/10">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-[0_0_30px_rgba(6,182,212,0.2)] border border-white/10 group-hover:scale-110 transition-transform duration-500">
                     <Upload size={32} className="text-cyan-400 sm:hidden" />
                     <Upload size={40} className="text-cyan-400 hidden sm:block" />
                 </div>

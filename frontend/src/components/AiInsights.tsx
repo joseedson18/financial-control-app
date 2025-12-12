@@ -139,7 +139,7 @@ export default function AiInsights({ data, language }: AiInsightsProps) {
                                         value={apiKey}
                                         onChange={(e) => setApiKey(e.target.value)}
                                         placeholder="sk-..."
-                                        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
+                                        className="glass-input flex-1 !py-2 !text-sm" />
                                     <button
                                         onClick={() => handleSaveKey(apiKey)}
                                         className="btn-primary"

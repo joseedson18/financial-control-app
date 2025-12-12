@@ -136,7 +136,7 @@ export default function TransactionList({
 
                         {tx.categoria && (
                             <div className="mt-2">
-                                <span className="inline-block px-2 py-1 text-xs rounded-md bg-slate-800 text-gray-400">
+                                <span className="inline-block px-2 py-1 text-xs rounded-md bg-white/5 hover:bg-white/10 transition-colors text-slate-400 border border-white/5">
                                     {tx.categoria}
                                 </span>
                             </div>

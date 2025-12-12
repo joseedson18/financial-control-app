@@ -216,7 +216,7 @@ export default function Dashboard({ language }: DashboardProps) {
         return (
             <div className="text-center p-12">
                 <GlassCard className="max-w-md mx-auto p-12">
-                    <div className="bg-slate-800/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="bg-white/5 backdrop-blur-sm w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
                         <Activity size={40} className="text-cyan-500" />
                     </div>
                     <h3 className="text-2xl font-bold text-white mb-3">{t.noDataTitle}</h3>
