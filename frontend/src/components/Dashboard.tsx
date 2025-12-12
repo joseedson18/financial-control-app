@@ -185,18 +185,19 @@ export default function Dashboard({ language }: DashboardProps) {
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-xl shadow-2xl">
-                    <p className="text-slate-300 font-semibold mb-2 border-b border-white/10 pb-2">{label}</p>
+                <div className="glass-panel p-4 rounded-xl !bg-[#0f172a]/95 border-none shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]">
+                    <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-3 pb-2 border-b border-white/5">{label}</p>
                     {payload.map((entry: any, index: number) => (
-                        <div key={index} className="flex items-center gap-2 mb-1">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                            <p style={{ color: entry.color }} className="text-sm font-medium">
-                                {entry.name}: {
-                                    entry.name === 'Margin' || entry.name === 'EBITDA %'
-                                        ? formatPercent(entry.value)
-                                        : formatCurrency(entry.value)
-                                }
-                            </p>
+                        <div key={index} className="flex items-center justify-between gap-6 mb-2 last:mb-0">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: entry.color, color: entry.color }} />
+                                <span className="text-slate-300 text-sm font-medium">{entry.name}</span>
+                            </div>
+                            <span className="text-white font-bold font-mono text-sm">
+                                {entry.name === 'Margin' || entry.name === 'EBITDA %'
+                                    ? formatPercent(entry.value)
+                                    : formatCurrency(entry.value)}
+                            </span>
                         </div>
                     ))}
                 </div>

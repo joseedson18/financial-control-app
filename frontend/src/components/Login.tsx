@@ -39,8 +39,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     return (
         <div className="min-h-screen min-h-screen-safe bg-slate-900 flex items-center justify-center p-4 sm:p-6">
-            <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
-                <div className="text-center mb-6 sm:mb-8">
+            <div className="bg-[#0f172a]/40 backdrop-blur-md p-6 sm:p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/10 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                <div className="relative z-10 text-center mb-8 sm:mb-10">
                     <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4">
                         <img
                             src="/logo.webp"
@@ -53,9 +54,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 flex items-center gap-3">
-                        <AlertCircle size={20} />
-                        <span>{error}</span>
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 flex items-center gap-3 animate-pulse">
+                        <AlertCircle size={20} className="shrink-0" />
+                        <span className="text-sm font-medium">{error}</span>
                     </div>
                 )}
 
@@ -70,7 +71,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                className="glass-input pl-11 focus:ring-cyan-500/30"
                                 placeholder="admin@example.com"
                                 required
                             />
@@ -87,7 +88,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                className="glass-input pl-11 focus:ring-cyan-500/30"
                                 placeholder="••••••••"
                                 required
                             />
@@ -97,15 +98,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full btn-primary py-4 text-base font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
                     >
                         {loading ? (
                             <>
                                 <Loader2 className="animate-spin" size={20} />
-                                Signing in...
+                                <span className="tracking-wide">Signing in...</span>
                             </>
                         ) : (
-                            'Sign In'
+                            <span className="tracking-wide">Sign In</span>
                         )}
                     </button>
                 </form>
