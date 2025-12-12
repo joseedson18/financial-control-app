@@ -18,7 +18,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 _logged_missing_secret_warning = False
 _missing_admin_users_logged = False
+_logged_invalid_admin_json = False
 _secret_key_cache: Optional[str] = None
+_users_cache_config: Optional[tuple] = None
+_users_cache_value: Optional[dict] = None
 
 # Load environment variables before reading configuration
 load_dotenv()
@@ -56,9 +59,19 @@ def _load_users_from_env() -> dict:
     Supports a JSON array in ADMIN_USERS_JSON or the ADMIN_EMAIL/ADMIN_PASSWORD
     pair. Each entry is stored with a bcrypt password hash.
     """
-    users = {}
+    global _users_cache_config, _users_cache_value, _logged_invalid_admin_json
 
-    env_json = os.getenv("ADMIN_USERS_JSON")
+    env_json = os.getenv("ADMIN_USERS_JSON") or ""
+    admin_email = os.getenv("ADMIN_EMAIL") or ""
+    admin_password = os.getenv("ADMIN_PASSWORD") or ""
+    admin_name = os.getenv("ADMIN_NAME") or "Administrator"
+
+    cache_signature = (env_json, admin_email, admin_password, admin_name)
+    if cache_signature == _users_cache_config and _users_cache_value is not None:
+        return dict(_users_cache_value)
+
+    users: dict[str, dict[str, str]] = {}
+
     if env_json:
         try:
             entries = json.loads(env_json)
@@ -81,19 +94,21 @@ def _load_users_from_env() -> dict:
 
                 users[email] = {"password_hash": password_hash, "name": name}
         except json.JSONDecodeError as exc:
-            logger.error("Invalid ADMIN_USERS_JSON: %s", exc)
+            if not _logged_invalid_admin_json:
+                logger.error("Invalid ADMIN_USERS_JSON: %s", exc)
+                _logged_invalid_admin_json = True
 
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
     if admin_email:
         if not admin_password:
             logger.error("ADMIN_PASSWORD must be set when ADMIN_EMAIL is provided")
         else:
             users[admin_email] = {
                 "password_hash": hash_password(admin_password),
-                "name": os.getenv("ADMIN_NAME", "Administrator")
+                "name": admin_name,
             }
 
+    _users_cache_config = cache_signature
+    _users_cache_value = dict(users)
     return users
 
 
