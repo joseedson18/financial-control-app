@@ -18,4 +18,17 @@ api.interceptors.request.use(
   }
 );
 
+// Add a response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      // Force reload to show login screen
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

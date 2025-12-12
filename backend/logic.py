@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import LinearRegression
 from datetime import datetime
 import io
 import logging
@@ -622,5 +623,76 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
         "other": abs(get_val_by_line(12, latest_month))  # Outras Despesas
     }
     
+    
     return DashboardData(kpis=kpis, monthly_data=monthly_data, cost_structure=cost_structure)
+
+def calculate_forecast(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict[str, Dict[str, float]] = None, months_ahead: int = 3) -> Dict[str, Any]:
+    """
+    Predict future financial metrics (Revenue, EBITDA) using Linear Regression.
+    """
+    if df is None:
+        return {"forecast": []}
+
+    # Get historical data
+    pnl = calculate_pnl(df, mappings, overrides)
+    
+    if not pnl.headers:
+        return {"forecast": []}
+        
+    # Prepare data for regression
+    # X = Month Index (0, 1, 2...), Y = Value
+    
+    # We need to parse month strings 'YYYY-MM' to ordinal or just index
+    months_str = pnl.headers
+    
+    # Helper to get line values
+    def get_line_series(line_number):
+        series = []
+        for m in months_str:
+            val = 0.0
+            for row in pnl.rows:
+                if row.line_number == line_number:
+                    val = row.values.get(m, 0.0)
+                    break
+            series.append(val)
+        return series
+
+    revenue_series = get_line_series(1) # Revenue
+    ebitda_series = get_line_series(13) # EBITDA
+    
+    # Ensure sufficient data points (at least 3 months for a trend)
+    if len(months_str) < 3:
+        return {"forecast": [], "warning": "Not enough data for reliable forecast (need 3+ months)"}
+
+    X = np.arange(len(months_str)).reshape(-1, 1)
+    
+    # Train Models
+    model_rev = LinearRegression()
+    model_rev.fit(X, revenue_series)
+    
+    model_ebitda = LinearRegression()
+    model_ebitda.fit(X, ebitda_series)
+    
+    # Predict Future
+    last_idx = len(months_str) - 1
+    future_X = np.arange(last_idx + 1, last_idx + 1 + months_ahead).reshape(-1, 1)
+    
+    pred_rev = model_rev.predict(future_X)
+    pred_ebitda = model_ebitda.predict(future_X)
+    
+    # Generate future month labels
+    last_month_str = months_str[-1]
+    last_date = pd.Period(last_month_str, freq='M')
+    
+    forecast_data = []
+    for i in range(months_ahead):
+        next_period = last_date + (i + 1)
+        forecast_data.append({
+            "month": str(next_period),
+            "revenue": max(0, round(float(pred_rev[i]), 2)), # No negative revenue
+            "ebitda": round(float(pred_ebitda[i]), 2),
+            "is_forecast": True
+        })
+        
+    return {"forecast": forecast_data}
 

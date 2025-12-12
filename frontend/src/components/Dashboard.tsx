@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell, Sector } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, Legend, PieChart, Pie, Cell, Sector, Brush, ReferenceLine, ComposedChart, LineChart } from 'recharts';
 import api from '../api';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import StatCard from './StatCard';
 import AiInsights from './AiInsights';
 import FormulaModal from './FormulaModal';
@@ -40,7 +42,10 @@ const translations = {
         tech: 'Tecnologia',
         other: 'Outros',
         clearData: 'Limpar Dados',
-        confirmClear: 'Tem certeza que deseja apagar todos os dados?'
+        confirmClear: 'Tem certeza que deseja apagar todos os dados?',
+        forecast: 'Previsão ML',
+        showForecast: 'Ver Previsão (3 meses)',
+        downloading: 'Baixando PDF...'
     },
     en: {
         loading: 'Loading dashboard...',
@@ -62,7 +67,10 @@ const translations = {
         tech: 'Tech',
         other: 'Other',
         clearData: 'Clear Data',
-        confirmClear: 'Are you sure you want to clear all data?'
+        confirmClear: 'Are you sure you want to clear all data?',
+        forecast: 'ML Forecast',
+        showForecast: 'Show Forecast (3 months)',
+        downloading: 'Downloading PDF...'
     }
 };
 
@@ -128,6 +136,10 @@ export default function Dashboard({ language }: DashboardProps) {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeIndex, setActiveIndex] = useState(0);
+    const [forecastData, setForecastData] = useState<any[]>([]);
+    const [showForecast, setShowForecast] = useState(false);
+    const [showYoY, setShowYoY] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [formulaModal, setFormulaModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -163,8 +175,40 @@ export default function Dashboard({ language }: DashboardProps) {
         fetchData();
     }, []);
 
-    const handlePrint = () => {
-        window.print();
+    const fetchForecast = async () => {
+        if (showForecast) {
+            setShowForecast(false);
+            return;
+        }
+
+        try {
+            const response = await api.get('/api/forecast?months=3');
+            setForecastData(response.data.forecast);
+            setShowForecast(true);
+        } catch (error) {
+            console.error("Error fetching forecast:", error);
+        }
+    };
+
+    const handlePrint = async () => {
+        setIsDownloading(true);
+        const element = document.getElementById('dashboard-content');
+        if (!element) return;
+
+        try {
+            const canvas = await html2canvas(element, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`dashboard-report-${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (error) {
+            console.error("PDF Export failed:", error);
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     const onPieEnter = (_: any, index: number) => {
@@ -245,13 +289,22 @@ export default function Dashboard({ language }: DashboardProps) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
             className="space-y-8 pb-12"
+            id="dashboard-content"
         >
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-bold text-white">Dashboard Overview</h2>
                     <p className="text-slate-400 text-xs sm:text-sm">Real-time financial insights</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                    <button
+                        onClick={() => setShowYoY(!showYoY)}
+                        disabled={showForecast}
+                        className={`flex items-center justify-center gap-2 w-full sm:w-auto text-sm px-4 py-2 rounded-lg border transition-all ${showYoY ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300' : 'bg-white/5 border-white/10 hover:bg-white/10'} ${showForecast ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <Activity size={18} className={showYoY ? "text-cyan-400" : ""} />
+                        YoY
+                    </button>
                     <button
                         onClick={async () => {
                             if (confirm(t.confirmClear || 'Are you sure?')) {
@@ -265,8 +318,17 @@ export default function Dashboard({ language }: DashboardProps) {
                     >
                         <Trash2 size={18} /> {t.clearData}
                     </button>
-                    <button onClick={handlePrint} className="btn-secondary flex items-center justify-center gap-2 w-full sm:w-auto text-sm">
-                        <Download size={18} /> {t.exportPdf}
+
+                    <button
+                        onClick={fetchForecast}
+                        className={`flex items-center justify-center gap-2 w-full sm:w-auto text-sm px-4 py-2 rounded-lg border transition-all ${showForecast ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                    >
+                        <TrendingUp size={18} className={showForecast ? "text-indigo-400" : ""} />
+                        {t.showForecast}
+                    </button>
+
+                    <button onClick={handlePrint} disabled={isDownloading} className="btn-secondary flex items-center justify-center gap-2 w-full sm:w-auto text-sm">
+                        <Download size={18} /> {isDownloading ? t.downloading : t.exportPdf}
                     </button>
                 </div>
             </div>
@@ -330,7 +392,7 @@ export default function Dashboard({ language }: DashboardProps) {
                     <div className="h-[220px] sm:h-[300px] w-full">
                         {data.monthly_data.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={data.monthly_data} barGap={8} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                <BarChart data={[...data.monthly_data, ...(showForecast ? forecastData : [])]} barGap={8} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="colorRevenueGraph" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor={COLORS.revenue} stopOpacity={0.8} />
@@ -348,6 +410,7 @@ export default function Dashboard({ language }: DashboardProps) {
                                     <Legend wrapperStyle={{ paddingTop: '20px' }} />
                                     <Bar dataKey="revenue" name={t.rev} fill="url(#colorRevenueGraph)" radius={[4, 4, 0, 0]} maxBarSize={40} />
                                     <Bar dataKey="costs" name={t.cost} fill="url(#colorCostGraph)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                    <Brush dataKey="month" height={30} stroke="#64748b" fill="#0f172a" />
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
@@ -366,28 +429,57 @@ export default function Dashboard({ language }: DashboardProps) {
                     <div className="h-[220px] sm:h-[300px] w-full">
                         {data.monthly_data.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={data.monthly_data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorEbitdaGraph" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                    <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dy={10} interval="preserveStartEnd" />
-                                    <YAxis stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dx={-10} width={60} />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="ebitda"
-                                        name="EBITDA"
-                                        stroke="#10b981"
-                                        strokeWidth={3}
-                                        dot={{ r: 4, fill: '#0f172a', stroke: '#10b981', strokeWidth: 2 }}
-                                        activeDot={{ r: 6, fill: '#10b981', stroke: '#fff' }}
-                                    />
-                                </LineChart>
+                                {showYoY ? (
+                                    <LineChart margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                        <XAxis dataKey="month" type="category" allowDuplicatedCategory={false} stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dy={10} />
+                                        <YAxis stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dx={-10} width={60} />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                        {Array.from(new Set(data.monthly_data.map(d => d.month.split('-')[0]))).map((year, i) => (
+                                            <Line
+                                                key={year}
+                                                data={data.monthly_data.filter(d => d.month.startsWith(year)).map(d => ({ ...d, month: d.month.split('-')[1] }))}
+                                                type="monotone"
+                                                dataKey="ebitda"
+                                                name={`EBITDA ${year}`}
+                                                stroke={[COLORS.profit, COLORS.revenue, COLORS.marketing][i % 3]}
+                                                strokeWidth={3}
+                                                dot={{ r: 4 }}
+                                            />
+                                        ))}
+                                    </LineChart>
+                                ) : (
+                                    <ComposedChart data={[...data.monthly_data, ...(showForecast ? forecastData : [])]} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorEbitdaGraph" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                        <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dy={10} interval="preserveStartEnd" />
+                                        <YAxis stroke="#64748b" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} dx={-10} width={60} />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="ebitda"
+                                            name="EBITDA"
+                                            stroke="#10b981"
+                                            strokeWidth={3}
+                                            dot={{ r: 4, fill: '#0f172a', stroke: '#10b981', strokeWidth: 2 }}
+                                            activeDot={{ r: 6, fill: '#10b981', stroke: '#fff' }}
+                                            strokeDasharray={showForecast ? "5 5" : ""} // Dashed line for forecast? No, this makes whole line dashed.
+                                        // We need two lines or segment logic. For simplicity, we just show connected line.
+                                        // But we can distinguish forecast points using the `is_forecast` prop in the data.
+                                        />
+                                        {showForecast && (
+                                            <ReferenceLine x={data.monthly_data[data.monthly_data.length - 1].month} stroke="red" strokeDasharray="3 3" label="Forecast Start" />
+                                        )}
+                                        <Brush dataKey="month" height={30} stroke="#64748b" fill="#0f172a" />
+                                    </ComposedChart>
+                                )}
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-500">
