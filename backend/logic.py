@@ -7,7 +7,7 @@ import logging
 from typing import List, Dict, Any
 from collections import defaultdict
 import unicodedata
-from models import MappingItem, PnLItem, PnLResponse, DashboardData
+from backend.models import MappingItem, PnLItem, PnLResponse, DashboardData
 
 # Configure logging for financial calculations
 logger = logging.getLogger(__name__)

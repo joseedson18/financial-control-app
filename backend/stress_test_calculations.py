@@ -5,7 +5,7 @@ Run with: python3 backend/stress_test_calculations.py
 import unittest
 import pandas as pd
 import numpy as np
-from logic import calculate_pnl, get_initial_mappings
+from backend.logic import calculate_pnl, get_initial_mappings
 
 class TestFinancialStress(unittest.TestCase):
     

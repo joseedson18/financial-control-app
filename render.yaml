@@ -3,16 +3,29 @@ services:
   - type: web
     name: financial-control-backend
     runtime: docker
-    rootDir: backend
+    rootDir: .
     plan: starter
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: FRONTEND_URL
         fromService:
           type: web
-          name: financial-control-appfinancial-control
+          name: financial-control-frontend
           property: url
-        # Update this after deploying the frontend
+      - key: FRONTEND_URLS
+        fromService:
+          type: web
+          name: financial-control-frontend
+          property: url
+        # Provides the backend with the deployed frontend origin for CORS.
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: "Administrator"
     # Persistent disk for data storage
     disk:
       name: data-storage
@@ -21,9 +34,9 @@ services:
 
   # Frontend Service (React/Vite)
   - type: web
-    name: financial-control-appfinancial-control
+    name: financial-control-frontend
     runtime: static
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
