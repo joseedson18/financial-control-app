@@ -26,8 +26,12 @@ USERS_DB = {
         "name": "Jose Mercado"
     },
     "matheuscastrocorrea@gmail.com": {
-        "password_hash": hash_password("euamoZe123!"),
+        "password_hash": "069f57dae98079b842a956e41d081e76487591a2ad65fa7a450717c1ab19767f", # Hash of 123456!
         "name": "Matheus Castro"
+    },
+    "jc@juicyscore.ai": {
+        "password_hash": "06b8d0bd9f7f33fa0e46ad56186ed2fd9425e9c5aa808ea2b4be0293e6edb953", # Hash of 654321!
+        "name": "JC"
     }
 }
 
