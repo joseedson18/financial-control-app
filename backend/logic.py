@@ -121,11 +121,10 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             return ""
         s = str(s).strip().lower()
         s = unicodedata.normalize("NFKD", s)
-        s = "".join(ch for ch in s if not unicodedata.combining(ch))
-        return s
+        return "".join(ch for ch in s if not unicodedata.combining(ch))
     
-    def converter_valor_br(valor_str):
-        if pd.isna(valor_str) or str(valor_str).strip() == '':
+    def converter_valor_br(valor_str: Any) -> float:
+        if pd.isna(valor_str) or str(valor_str).strip() == "":
             return 0.0
 
         s = str(valor_str).replace('R$', '').strip()
@@ -156,24 +155,7 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         try:
             v = float(s)
             return -v if negative else v
-        except:
-            return 0.0
-        if pd.isna(valor_str) or valor_str == '':
-            return 0.0
-        # Handle Brazilian format (1.234,56) and US format (1,234.56)
-        valor_str = str(valor_str).replace('R$', '').strip()
-        if ',' in valor_str and '.' in valor_str:
-            # Ambiguous, assume Brazilian if comma is last separator
-            if valor_str.rfind(',') > valor_str.rfind('.'):
-                valor_str = valor_str.replace('.', '').replace(',', '.')
-            else:
-                valor_str = valor_str.replace(',', '')
-        elif ',' in valor_str:
-            valor_str = valor_str.replace(',', '.')
-        
-        try:
-            return float(valor_str)
-        except:
+        except ValueError:
             return 0.0
 
     df['Valor_Num'] = df['Valor (R$)'].apply(converter_valor_br)
@@ -270,7 +252,228 @@ def get_initial_mappings() -> List[MappingItem]:
         ))
     return mappings
 
+def normalize_text_helper(s: Any) -> str:
+    # Helper outside process_upload for use in calculate_pnl
+    if pd.isna(s):
+        return ""
+    s = str(s).strip().lower()
+    s = unicodedata.normalize("NFKD", s)
+    return "".join(ch for ch in s if not unicodedata.combining(ch))
+
+def prepare_mappings(mappings: List[MappingItem]):
+    specific = []
+    generic = {}
+
+    for m in mappings:
+        cc = normalize_text_helper(m.centro_custo)
+        supp = normalize_text_helper(m.fornecedor_cliente)
+
+        if supp and supp != "diversos":
+            # Store tuple of (normalized_cc, normalized_supplier, mapping_obj)
+            specific.append((cc, supp, m))
+        else:
+            generic[cc] = m
+
+    return specific, generic
+
 def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict[str, Dict[str, float]] = None, start_date: str = None, end_date: str = None) -> PnLResponse:
+    """
+    Calculate P&L based on dataframe and mappings.
+    Optionally filter by date range.
+    """
+    if df is None:
+        return PnLResponse(headers=[], rows=[])
+    
+    # Apply date filter if provided
+    filtered_df = df.copy()
+    if start_date or end_date:
+        if start_date:
+            start = pd.to_datetime(start_date)
+            filtered_df = filtered_df[filtered_df['Data de competência'] >= start]
+        if end_date:
+            end = pd.to_datetime(end_date)
+            filtered_df = filtered_df[filtered_df['Data de competência'] <= end]
+
+    # Calculate months from filtered data
+    months = sorted(filtered_df['Mes_Competencia'].dropna().unique())
+    month_strs = [str(m) for m in months]
+
+    # Initialize data structure for calculations
+    # line_values[line_num][month_str] = value
+    line_values = {i: {m: 0.0 for m in month_strs} for i in range(1, 121)}
+
+    # Optimize Mapping Lookups
+    specific_mappings, generic_mappings = prepare_mappings(mappings)
+
+    # Iterate through DataFrame once
+    for _, row in filtered_df.iterrows():
+        month = str(row['Mes_Competencia'])
+        if month not in month_strs:
+            continue
+            
+        val = row['Valor_Num']
+        # Use the helper function here
+        cc = normalize_text_helper(row['Centro de Custo 1'])
+        supplier = normalize_text_helper(row['Nome do fornecedor/cliente'])
+        
+        matched_mapping = None
+        
+        # 1. Try Specific Mappings (Substring match)
+        for m_cc, m_supp, m in specific_mappings:
+            if m_cc in cc and m_supp in supplier:
+                matched_mapping = m
+                break
+        
+        # 2. If no specific match, try Generic Mapping
+        if not matched_mapping:
+            for g_cc, g_m in generic_mappings.items():
+                if g_cc in cc:
+                    matched_mapping = g_m
+                    break
+        
+        # 3. If match found, add to line values
+        if matched_mapping:
+            try:
+                line_num = int(matched_mapping.linha_pl)
+                line_values[line_num][month] += val
+                
+                # DEBUG: Log large matches
+                if abs(val) > 50000:
+                    description = matched_mapping.observacoes
+                    logger.info(f"MATCH (Active Loop): Line {line_num} ({description}) matched {val:.2f} | CC: '{row['Centro de Custo 1']}' | Forn: '{row['Nome do fornecedor/cliente']}'")
+            except:
+                continue
+
+    # ========================================================================
+    # CALCULATE DERIVED VALUES FOR EACH MONTH
+    # ========================================================================
+    
+    for m in month_strs:
+        
+        # ============================================
+        # FINANCIAL CALCULATIONS WITH CORRECT SIGNS
+        # ============================================
+        
+        # 1. TOTAL REVENUE CALCULATION (Safety Enforced)
+        google_rev = abs(line_values[25].get(m, 0.0))      # Google Play (Line 25)
+        apple_rev = abs(line_values[33].get(m, 0.0))       # App Store (Line 33)
+        invest_income = abs(line_values[38].get(m, 0.0))   # Rendimentos (Line 38)
+        
+        total_revenue = google_rev + apple_rev + invest_income
+        revenue_no_tax = google_rev + apple_rev  # Revenue subject to payment processing
+        
+        # 2. PAYMENT PROCESSING COST  
+        payment_processing_rate = 0.1765
+        payment_processing_cost = revenue_no_tax * payment_processing_rate
+        
+        # 3. COST OF GOODS SOLD (COGS)
+        cogs_sum = sum(abs(line_values[i].get(m, 0.0)) for i in range(43, 49))
+        
+        # 4. GROSS PROFIT
+        gross_profit = total_revenue - payment_processing_cost - cogs_sum
+        
+        # 5. OPERATING EXPENSES (OpEx)
+        marketing_abs = abs(line_values[56].get(m, 0.0))      # Marketing (Line 56)
+        wages_abs = abs(line_values[62].get(m, 0.0))          # Salaries (Line 62)
+        tech_support_abs = abs(line_values[68].get(m, 0.0)) + abs(line_values[65].get(m, 0.0))   # Tech Support
+        other_expenses_abs = abs(line_values[90].get(m, 0.0)) # Other (Line 90)
+        
+        # Total SG&A and OpEx (as positive values)
+        sga_total = marketing_abs + wages_abs + tech_support_abs
+        total_opex = sga_total + other_expenses_abs
+        
+        # 6. EBITDA
+        ebitda = gross_profit - total_opex
+        
+        # 7. NET RESULT
+        net_result = ebitda  # Simplified
+        
+        # Store calculated values for P&L display
+        line_values[100][m] = total_revenue           # (+) Revenue
+        line_values[101][m] = revenue_no_tax          # (+) Revenue no Tax
+        line_values[112][m] = google_rev              # (+) Google Revenue
+        line_values[113][m] = apple_rev               # (+) Apple Revenue
+        line_values[102][m] = -payment_processing_cost # (-) Payment Processing
+        line_values[103][m] = -cogs_sum               # (-) COGS
+        line_values[104][m] = gross_profit            # (=) Gross Profit
+        line_values[105][m] = -sga_total              # (-) SG&A
+        line_values[106][m] = ebitda                  # (=) EBITDA
+        line_values[107][m] = -marketing_abs          # (-) Marketing
+        line_values[108][m] = -wages_abs              # (-) Wages  
+        line_values[109][m] = -tech_support_abs       # (-) Tech Support
+        line_values[110][m] = -other_expenses_abs     # (-) Other Expenses
+        line_values[111][m] = net_result              # (=) Net Result
+        
+        # Log calculation details for verification
+        logger.info(f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, Gross Profit={gross_profit:.2f}")
+
+    # APPLY OVERRIDES (Restricted to Final Lines)
+    FINAL_LINES = {100, 106, 111} # Revenue, EBITDA, Net Result
+    if overrides:
+        for line_str, months_data in overrides.items():
+            try:
+                line_num = int(line_str)
+                if line_num not in FINAL_LINES:
+                    continue
+                for m, val in months_data.items():
+                    if m in month_strs:
+                        line_values[line_num][m] = val
+            except:
+                continue
+
+    # Build P&L Rows
+    rows = []
+    
+    def add_row(line_num, desc, val_dict, is_header=False, is_total=False):
+        # Check for override on this specific line (even if not in FINAL_LINES, to display user intent if blocked?)
+        # For safety as requested, we strictly rely on the calc above, 
+        # but if we want to show the overridden value we must read from line_values which we updated above.
+        
+        rows.append(PnLItem(
+            line_number=line_num,
+            description=desc,
+            values=val_dict,
+            is_header=is_header,
+            is_total=is_total
+        ))
+
+    add_row(1, "RECEITA OPERACIONAL BRUTA", line_values[100], is_header=True)
+    add_row(2, "Receita de Vendas (Google + Apple)", line_values[101])
+    add_row(21, "Google Play Revenue", line_values[112])
+    add_row(22, "App Store Revenue", line_values[113])
+    add_row(3, "Rendimentos de Aplicações", line_values[38])
+    
+    add_row(4, "(-) CUSTOS DIRETOS", {m: line_values[102][m] + line_values[103][m] for m in month_strs}, is_header=True)
+    add_row(5, "Payment Processing (17.65%)", line_values[102])
+    add_row(6, "COGS (Web Services)", line_values[103])
+    
+    add_row(7, "(=) LUCRO BRUTO", line_values[104], is_total=True)
+    
+    add_row(8, "(-) DESPESAS OPERACIONAIS", {m: line_values[105][m] + line_values[110][m] for m in month_strs}, is_header=True)
+    add_row(9, "Marketing", line_values[107])
+    add_row(10, "Salários (Wages)", line_values[108])
+    add_row(11, "Tech Support & Services", line_values[109])
+    add_row(12, "Outras Despesas", line_values[110])
+    
+    add_row(13, "(=) EBITDA", line_values[106], is_total=True)
+    add_row(16, "(=) RESULTADO LÍQUIDO", line_values[111], is_total=True)
+    
+    # Margins
+    ebitda_margins = {}
+    gross_margins = {}
+    for m in month_strs:
+        rev = line_values[100][m]
+        if rev and rev != 0:
+            ebitda_margins[m] = (line_values[106][m] / rev) * 100
+            gross_margins[m] = (line_values[104][m] / rev) * 100
+        else:
+            ebitda_margins[m] = 0.0
+            gross_margins[m] = 0.0
+            
+    add_row(14, "Margem EBITDA %", ebitda_margins)
+    add_row(15, "Margem Bruta %", gross_margins)
+
+    return PnLResponse(headers=month_strs, rows=rows)
     """
     Calculate P&L based on dataframe and mappings.
     Optionally filter by date range.
