@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Depends, status
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List
@@ -6,7 +6,15 @@ import pandas as pd
 from models import MappingItem, MappingUpdate, DashboardData, PnLResponse
 from logic import process_upload, get_initial_mappings, calculate_pnl, get_dashboard_data, calculate_forecast
 from ai_service import generate_insights
-from auth import Token, create_access_token, get_current_user, USERS_DB, verify_password, get_password_hash, ACCESS_TOKEN_EXPIRE_MINUTES
+from auth import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    Token,
+    create_access_token,
+    ensure_auth_configured,
+    get_current_user,
+    USERS_DB,
+    verify_password,
+)
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -36,7 +44,7 @@ if frontend_url:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Keep * for now to avoid issues if env var is missing or mismatch
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,6 +59,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     Login endpoint for admin users.
     Accepts email as username and password, returns JWT access token.
     """
+    ensure_auth_configured()
     user = USERS_DB.get(form_data.username)
     if not user or not verify_password(form_data.password, user["password_hash"]):
         raise HTTPException(
@@ -155,7 +164,7 @@ async def startup_event():
 
 
 @app.post("/pnl/override")
-def update_pnl_override(data: dict):
+def update_pnl_override(data: dict, current_user: dict = Depends(get_current_user)):
     """Update a specific cell in the P&L"""
     global current_overrides
     
