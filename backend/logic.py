@@ -6,6 +6,7 @@ import io
 import logging
 from typing import List, Dict, Any
 from collections import defaultdict
+import unicodedata
 from models import MappingItem, PnLItem, PnLResponse, DashboardData
 
 # Configure logging for financial calculations
@@ -68,6 +69,13 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
     column_aliases = {
         'Data de competência': ['Data de competência', 'Data de Competência', 'Data Competência', 'data_competencia', 'Data'],
         'Valor (R$)': ['Valor (R$)', 'Valor', 'Valor R$', 'valor', 'VALOR'],
+        'Tipo': [
+            'Tipo', 'tipo',
+            'Entrada/Saída', 'Entrada/Saida',
+            'Tipo (Entrada/Saída)', 'Tipo (Entrada/Saida)',
+            'Tipo de movimentação', 'Tipo de Movimentação',
+            'Natureza', 'natureza'
+        ],
         'Centro de Custo 1': ['Centro de Custo 1', 'Centro de Custo', 'CentroCusto', 'centro_custo', 'Centro de custo 1'],
         'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente']
     }
@@ -108,7 +116,48 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
 
     df['Data de competência'] = df['Data de competência'].apply(parse_dates)
     
+    def normalize_text(s: Any) -> str:
+        if pd.isna(s):
+            return ""
+        s = str(s).strip().lower()
+        s = unicodedata.normalize("NFKD", s)
+        s = "".join(ch for ch in s if not unicodedata.combining(ch))
+        return s
+    
     def converter_valor_br(valor_str):
+        if pd.isna(valor_str) or str(valor_str).strip() == '':
+            return 0.0
+
+        s = str(valor_str).replace('R$', '').strip()
+
+        negative = False
+        # (1.234,56) accounting negative
+        if s.startswith('(') and s.endswith(')'):
+            negative = True
+            s = s[1:-1].strip()
+
+        # 1.234,56- trailing minus
+        if s.endswith('-'):
+            negative = True
+            s = s[:-1].strip()
+
+        # Remove spaces
+        s = s.replace(' ', '')
+
+        # Brazilian vs US separators
+        if ',' in s and '.' in s:
+            if s.rfind(',') > s.rfind('.'):
+                s = s.replace('.', '').replace(',', '.')
+            else:
+                s = s.replace(',', '')
+        elif ',' in s:
+            s = s.replace(',', '.')
+
+        try:
+            v = float(s)
+            return -v if negative else v
+        except:
+            return 0.0
         if pd.isna(valor_str) or valor_str == '':
             return 0.0
         # Handle Brazilian format (1.234,56) and US format (1,234.56)
@@ -128,6 +177,30 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             return 0.0
 
     df['Valor_Num'] = df['Valor (R$)'].apply(converter_valor_br)
+
+    if 'Tipo' in df.columns:
+        tipo = df['Tipo'].apply(normalize_text)
+
+        is_saida = (
+            tipo.str.contains('saida') |
+            tipo.str.contains('debito') |
+            tipo.str.contains('despesa') |
+            tipo.str.contains('pagamento')
+        )
+        # Entrada/Credito/Receita -> positive
+        sign = np.where(is_saida, -1.0, 1.0)
+
+        # IMPORTANT: ignore any embedded minus in the numeric string,
+        # because Tipo is the source of truth.
+        df['Valor_Num'] = df['Valor_Num'].abs() * sign
+        
+        # Validation Log
+        logger.info("Tipo normalization applied.")
+        logger.info(f"Tipo counts: {tipo.value_counts().to_dict()}")
+        logger.info(f"Sum Valor_Num (signed): {df['Valor_Num'].sum():.2f}")
+        logger.info(f"Sum abs Valor_Num: {df['Valor_Num'].abs().sum():.2f}")
+    else:
+        logger.warning("CSV has no Tipo/Entrada-Saída column; using sign embedded in Valor (R$).")
     df['Mes_Competencia'] = df['Data de competência'].dt.to_period('M')
     
     # Normalize text columns for mapping
