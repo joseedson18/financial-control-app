@@ -60,16 +60,38 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         else:
             raise ValueError("Error reading CSV file. Could not detect valid format (encoding/separator).")
 
+    # Normalize column names - strip whitespace
+    df.columns = [c.strip() for c in df.columns]
+    
+    # Column name mapping for flexibility (handle different Conta Azul export formats)
+    column_aliases = {
+        'Data de competência': ['Data de competência', 'Data de Competência', 'Data Competência', 'data_competencia', 'Data'],
+        'Valor (R$)': ['Valor (R$)', 'Valor', 'Valor R$', 'valor', 'VALOR'],
+        'Centro de Custo 1': ['Centro de Custo 1', 'Centro de Custo', 'CentroCusto', 'centro_custo', 'Centro de custo 1'],
+        'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente']
+    }
+    
+    # Try to find and rename columns
+    for target_col, aliases in column_aliases.items():
+        if target_col not in df.columns:
+            for alias in aliases:
+                if alias in df.columns:
+                    df.rename(columns={alias: target_col}, inplace=True)
+                    print(f"✅ Mapped column '{alias}' -> '{target_col}'")
+                    break
+    
+    # Print available columns for debugging
+    print(f"📋 Available columns after normalization: {list(df.columns)}")
+
     # Basic validation
     required_cols = ['Data de competência', 'Valor (R$)', 'Centro de Custo 1', 'Nome do fornecedor/cliente']
-    for col in required_cols:
-        if col not in df.columns:
-            raise ValueError(f"Missing required column: {col}")
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    
+    if missing_cols:
+        available = ', '.join(df.columns[:10])  # Show first 10 columns
+        raise ValueError(f"Missing required columns: {missing_cols}. Available columns: {available}...")
 
     # Data cleaning
-    # Data cleaning
-    # Normalize column names to avoid issues with spaces
-    df.columns = [c.strip() for c in df.columns]
     
     # Robust date parsing
     def parse_dates(date_str):
@@ -575,21 +597,36 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
                 return row.values.get(month, 0.0)
         return 0.0
 
-    # Extract KPIs from latest month
-    revenue = get_val_by_line(1, latest_month)  # RECEITA OPERACIONAL BRUTA
-    ebitda = get_val_by_line(13, latest_month)  # EBITDA
-    gross_profit = get_val_by_line(7, latest_month)  # LUCRO BRUTO
-    net_result = ebitda  # For now, net result = EBITDA (no depreciation/interest/taxes yet)
+    # Extract KPIs - SUM over all months (YTD view)
+    total_revenue = 0.0
+    total_ebitda = 0.0
+    total_gross_profit = 0.0
+    total_google = 0.0
+    total_apple = 0.0
+    
+    # Iterate through all months to sum up values
+    for m in pnl.headers:
+        total_revenue += get_val_by_line(1, m)       # RECEITA OPERACIONAL BRUTA
+        total_ebitda += get_val_by_line(13, m)       # EBITDA
+        total_gross_profit += get_val_by_line(7, m)  # LUCRO BRUTO
+        total_google += get_val_by_line(21, m)
+        total_apple += get_val_by_line(22, m)
+    
+    net_result = total_ebitda  # For now
+    
+    # Avoid division by zero
+    ebitda_margin = (total_ebitda / total_revenue) if total_revenue > 0 else 0.0
+    gross_margin = (total_gross_profit / total_revenue) if total_revenue > 0 else 0.0
     
     # KPIs
     kpis = {
-        "total_revenue": revenue,
+        "total_revenue": total_revenue,
         "net_result": net_result,
-        "ebitda": ebitda,
-        "ebitda_margin": ebitda / revenue if revenue else 0,
-        "gross_margin": gross_profit / revenue if revenue else 0,
-        "google_revenue": get_val_by_line(21, latest_month), # NEW
-        "apple_revenue": get_val_by_line(22, latest_month),  # NEW
+        "ebitda": total_ebitda,
+        "ebitda_margin": ebitda_margin,
+        "gross_margin": gross_margin,
+        "google_revenue": total_google,
+        "apple_revenue": total_apple,
         "nau": 0,  # Placeholder
         "cpa": 0   # Placeholder
     }
