@@ -20,13 +20,15 @@ The provided `render.yaml` and `backend/Dockerfile` are wired for Render's docke
 
 1. Confirm `render.yaml` is present at the repo root (Render will auto-detect it). The backend service now references
    `backend/Dockerfile` from the repository root, ensuring the package layout is preserved during the build.
-2. Set the minimum environment variables in Render:
-   - `SECRET_KEY` (long random string)
+2. In the Render dashboard, create two services with the names in the YAML: `financial-control-backend` (Docker) and
+   `financial-control-frontend` (static). Render will auto-wire URLs between them using the `fromService` entries.
+3. Set the minimum environment variables in Render (the YAML will pre-create most keys):
+   - `SECRET_KEY` (auto-generated on first deploy unless you override)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` **or** `ADMIN_USERS_JSON`
-   - `FRONTEND_URL` (Render will auto-fill from the static site if both services are deployed together)
-3. On deployment, Render will build the image with Python 3.11, install `backend/requirements.txt`, copy the `backend/`
+   - `FRONTEND_URL` or `FRONTEND_URLS` if you need to whitelist multiple origins
+4. On deployment, Render will build the image with Python 3.11, install `backend/requirements.txt`, copy the `backend/`
    package, and launch `uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}`.
-4. If you need to run locally using the same container definition, execute:
+5. If you need to run locally using the same container definition, execute:
 
 ```bash
 docker build -f backend/Dockerfile -t financial-control .
