@@ -1,5 +1,4 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List
 import pandas as pd
@@ -21,6 +20,7 @@ from backend.auth import (
     USERS_DB,
     verify_password,
 )
+from backend.middleware import register_cors
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -36,25 +36,22 @@ load_dotenv()
 app = FastAPI()
 
 # Configure CORS
-# Configure CORS
-origins = [
+default_origins = {
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:8000",
-]
+}
 
-# Add production frontend URL from env
-frontend_url = os.getenv("FRONTEND_URL")
-if frontend_url:
-    origins.append(frontend_url)
+# Add production frontend URLs from env (support comma-separated list)
+frontend_urls = os.getenv("FRONTEND_URLS")
+if frontend_urls:
+    default_origins.update({url.strip() for url in frontend_urls.split(",") if url.strip()})
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+single_frontend_url = os.getenv("FRONTEND_URL")
+if single_frontend_url:
+    default_origins.add(single_frontend_url)
+
+register_cors(app, sorted(default_origins))
 
 # ... (rest of imports)
 
