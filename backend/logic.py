@@ -196,60 +196,79 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
 def get_initial_mappings() -> List[MappingItem]:
     """
     Returns the initial hardcoded mappings.
+    Now includes generic fallbacks and coverage for Taxes, Refunds, etc.
     """
-    raw_mappings = [
-        # RECEITAS
-        ["Receita Google", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "25", "Receita", "Sim", "Receita Google Play"],
-        ["Receita Apple", "App Store Net Revenue", "App Store (Apple)", "33", "Receita", "Sim", "Receita App Store"],
-        # Duplicates commented out to avoid double counting if source data doesn't distinguish
-        # ["Receita Brasil", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "26", "Receita", "Sim", "Receita Brasil - Google"],
-        # ["Receita Brasil", "App Store Net Revenue", "App Store (Apple)", "34", "Receita", "Sim", "Receita Brasil - Apple"],
-        # ["Receita USA", "Google Play Net Revenue", "GOOGLE BRASIL PAGAMENTOS LTDA", "28", "Receita", "Sim", "Receita USA - Google"],
-        # ["Receita USA", "App Store Net Revenue", "App Store (Apple)", "36", "Receita", "Sim", "Receita USA - Apple"],
+    # Helper to condense definition
+    def m(cc, supp, line, tipo, obs):
+        return MappingItem(
+            grupo_financeiro=cc,
+            centro_custo=cc,
+            fornecedor_cliente=supp,
+            linha_pl=str(line),
+            tipo=tipo,
+            ativo="Sim",
+            observacoes=obs
+        )
+
+    mappings = [
+        # RECEITAS (Revenues)
+        m("Receita Google", "GOOGLE BRASIL PAGAMENTOS LTDA", 25, "Receita", "Receita Google Play"),
+        m("Receita Apple", "App Store (Apple)", 33, "Receita", "Receita App Store"),
+        m("Rendimentos de Aplicações", "CONTA SIMPLES", 38, "Receita", "Rendimentos CDI"),
+        m("Rendimentos de Aplicações", "BANCO INTER", 38, "Receita", "Rendimentos Inter"),
         
-        # COGS
-        ["COGS", "Web Services Expenses", "AWS", "43", "Custo", "Sim", "Amazon Web Services"],
-        ["COGS", "Web Services Expenses", "Cloudflare", "44", "Custo", "Sim", "Cloudflare"],
-        ["COGS", "Web Services Expenses", "Heroku", "45", "Custo", "Sim", "Heroku"],
-        ["COGS", "Web Services Expenses", "IAPHUB", "46", "Custo", "Sim", "IAPHUB"],
-        ["COGS", "Web Services Expenses", "MailGun", "47", "Custo", "Sim", "MailGun"],
-        ["COGS", "Web Services Expenses", "AWS SES", "48", "Custo", "Sim", "AWS SES"],
+        # COGS (Direct Costs)
+        # Specific
+        m("Web Services Expenses", "AWS", 43, "Custo", "Amazon Web Services"),
+        m("Web Services Expenses", "Cloudflare", 44, "Custo", "Cloudflare"),
+        m("Web Services Expenses", "Heroku", 45, "Custo", "Heroku"),
+        m("Web Services Expenses", "IAPHUB", 46, "Custo", "IAPHUB"),
+        m("Web Services Expenses", "MailGun", 47, "Custo", "MailGun"),
+        m("Web Services Expenses", "AWS SES", 48, "Custo", "AWS SES"),
+        # Generic
+        m("Web Services Expenses", "Diversos", 43, "Custo", "Web Services - Generic"),
+
+        # SG&A (Operating Expenses)
+        # Marketing
+        m("Marketing & Growth Expenses", "MGA MARKETING LTDA", 56, "Despesa", "Marketing Agency"),
+        m("Marketing & Growth Expenses", "Diversos", 56, "Despesa", "Marketing - Generic"),
         
-        # SG&A
-        ["SG&A", "Marketing & Growth Expenses", "MGA MARKETING LTDA", "56", "Despesa", "Sim", "Marketing"],
-        ["SG&A", "Marketing & Growth Expenses", "Diversos", "56", "Despesa", "Sim", "Marketing - Diversos"],
-        ["SG&A", "Wages Expenses", "Diversos", "62", "Despesa", "Sim", "Salários e Pró-labore"],
-        ["SG&A", "Tech Support & Services", "Adobe", "68", "Despesa", "Sim", "Adobe Creative Cloud"],
-        ["SG&A", "Tech Support & Services", "Canva", "68", "Despesa", "Sim", "Canva"],
-        ["SG&A", "Tech Support & Services", "ClickSign", "68", "Despesa", "Sim", "ClickSign"],
-        ["SG&A", "Tech Support & Services", "COMPANYHERO SAO PAULO BRA", "68", "Despesa", "Sim", "CompanyHero"],
-        ["SG&A", "Tech Support & Services", "Diversos", "65", "Despesa", "Sim", "Tech Support - Diversos"],
+        # Wages
+        m("Wages Expenses", "Diversos", 62, "Despesa", "Salários e Pró-labore"),
         
-        # OUTRAS DESPESAS
-        ["Outras Despesas", "Legal & Accounting Expenses", "BHUB.AI", "90", "Despesa", "Sim", "BPO Financeiro"],
-        ["Outras Despesas", "Legal & Accounting Expenses", "WOLFF E SCRIPES ADVOGADOS", "90", "Despesa", "Sim", "Honorários Advocatícios"],
-        ["Outras Despesas", "Office Expenses", "GO OFFICES LATAM S/A", "90", "Despesa", "Sim", "Aluguel"],
-        ["Outras Despesas", "Office Expenses", "CO-SERVICES DO BRASIL  SERVICOS COMBINADOS DE APOIO A EDIFICIOS LTDA", "90", "Despesa", "Sim", "Serviços de Escritório"],
-        ["Outras Despesas", "Travel", "American Airlines", "90", "Despesa", "Sim", "Viagens"],
-        ["Outras Despesas", "Other Taxes", "IMPOSTOS/TRIBUTOS", "90", "Despesa", "Sim", "Impostos e Tributos"],
-        ["Outras Despesas", "Payroll Tax - Brazil", "IMPOSTOS/TRIBUTOS", "90", "Despesa", "Sim", "Impostos sobre Folha"],
+        # Tech Support
+        m("Tech Support & Services", "Adobe", 68, "Despesa", "Adobe Creative Cloud"),
+        m("Tech Support & Services", "Canva", 68, "Despesa", "Canva"),
+        m("Tech Support & Services", "ClickSign", 68, "Despesa", "ClickSign"),
+        m("Tech Support & Services", "COMPANYHERO", 68, "Despesa", "Company Hero"),
+        m("Tech Support & Services", "Diversos", 65, "Despesa", "Tech Support - Generic"),
         
-        # RENDIMENTOS
-        ["Rendimentos", "Rendimentos de Aplicações", "CONTA SIMPLES", "38", "Receita", "Sim", "Rendimentos CDI - Conta Simples"],
-        ["Rendimentos", "Rendimentos de Aplicações", "BANCO INTER", "38", "Receita", "Sim", "Rendimentos - Banco Inter"],
+        # OTHER EXPENSES / TAXES
+        # Legal & Accounting
+        m("Legal & Accounting Expenses", "BHUB.AI", 90, "Despesa", "BPO Financeiro"),
+        m("Legal & Accounting Expenses", "WOLFF", 90, "Despesa", "Honorários Advocatícios"),
+        m("Legal & Accounting Expenses", "Diversos", 90, "Despesa", "Legal & Accounting - Generic"),
+
+        # Office
+        m("Office Expenses", "GO OFFICES", 90, "Despesa", "Aluguel"),
+        m("Office Expenses", "CO-SERVICES", 90, "Despesa", "Serviços de Escritório"),
+        m("Office Expenses", "Diversos", 90, "Despesa", "Office Expenses - Generic"),
+
+        # Travel
+        m("Travel", "American Airlines", 90, "Despesa", "Viagens"),
+        m("Travel", "Diversos", 90, "Despesa", "Travel - Generic"),
+
+        # Taxes
+        m("Other Taxes", "IMPOSTOS/TRIBUTOS", 90, "Despesa", "Impostos e Tributos"),
+        m("Other Taxes", "Diversos", 90, "Despesa", "Other Taxes - Generic"),
+        m("Payroll Tax - Brazil", "IMPOSTOS/TRIBUTOS", 90, "Despesa", "Impostos sobre Folha"),
+        m("Payroll Tax - Brazil", "Diversos", 90, "Despesa", "Payroll Tax - Generic"),
+
+        # General / Catch-all
+        m("Other Expenses", "Diversos", 90, "Despesa", "Despesas Gerais"),
+        m("Identificar", "Diversos", 90, "Despesa", "Despesas a Identificar"),
+        m("Devoluções e Estornos", "Diversos", 90, "Despesa", "Refunds & Chargebacks"),
     ]
-    
-    mappings = []
-    for m in raw_mappings:
-        mappings.append(MappingItem(
-            grupo_financeiro=m[0],
-            centro_custo=m[1],
-            fornecedor_cliente=m[2],
-            linha_pl=m[3],
-            tipo=m[4],
-            ativo=m[5],
-            observacoes=m[6]
-        ))
     return mappings
 
 def normalize_text_helper(s: Any) -> str:
@@ -261,20 +280,28 @@ def normalize_text_helper(s: Any) -> str:
     return "".join(ch for ch in s if not unicodedata.combining(ch))
 
 def prepare_mappings(mappings: List[MappingItem]):
-    specific = []
-    generic = {}
+    from collections import defaultdict
+    
+    # Use defaultdict(list) for specific mappings to handle multiple patterns for same CC
+    specific_by_cc = defaultdict(list)
+    generic_by_cc = {}
 
     for m in mappings:
         cc = normalize_text_helper(m.centro_custo)
         supp = normalize_text_helper(m.fornecedor_cliente)
 
         if supp and supp != "diversos":
-            # Store tuple of (normalized_cc, normalized_supplier, mapping_obj)
-            specific.append((cc, supp, m))
+            # Specific mapping
+            specific_by_cc[cc].append(m)
         else:
-            generic[cc] = m
+            # Generic mapping (fallback)
+            generic_by_cc[cc] = m
 
-    return specific, generic
+    # Sort specific mappings by supplier length desc (Longest match first)
+    for cc, m_list in specific_by_cc.items():
+        m_list.sort(key=lambda x: len(normalize_text_helper(x.fornecedor_cliente)), reverse=True)
+
+    return specific_by_cc, generic_by_cc
 
 def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict[str, Dict[str, float]] = None, start_date: str = None, end_date: str = None) -> PnLResponse:
     """
@@ -305,44 +332,76 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     # Optimize Mapping Lookups
     specific_mappings, generic_mappings = prepare_mappings(mappings)
 
-    # Iterate through DataFrame once
+    # DataFrame Enhancement for Matching
+    # Ensure necessary columns exist for detailed matching
+    if 'Descrição' not in filtered_df.columns:
+        filtered_df['Descrição'] = ''
+    
+    # Create normalized columns for robust matching (without modifying original too much)
+    # We use vectorization for performance
+    filtered_df['cc_norm'] = filtered_df['Centro de Custo 1'].fillna('').apply(normalize_text_helper)
+    filtered_df['supp_norm'] = filtered_df['Nome do fornecedor/cliente'].fillna('').apply(normalize_text_helper)
+    filtered_df['desc_norm'] = filtered_df['Descrição'].fillna('').apply(normalize_text_helper)
+    
+    # Combined text for looser matching (Supplier + Description)
+    filtered_df['match_text'] = (filtered_df['supp_norm'] + " " + filtered_df['desc_norm']).str.strip()
+
+    # Iterate through DataFrame
     for _, row in filtered_df.iterrows():
         month = str(row['Mes_Competencia'])
         if month not in month_strs:
             continue
             
         val = row['Valor_Num']
-        # Use the helper function here
-        cc = normalize_text_helper(row['Centro de Custo 1'])
-        supplier = normalize_text_helper(row['Nome do fornecedor/cliente'])
+        cc = row['cc_norm']
+        match_text = row['match_text']
         
         matched_mapping = None
         
-        # 1. Try Specific Mappings (Substring match)
-        for m_cc, m_supp, m in specific_mappings:
-            if m_cc in cc and m_supp in supplier:
+        # 1. Try Specific Mappings within the matching Cost Center
+        # Get candidate mappings for this Cost Center
+        candidates = specific_mappings.get(cc, [])
+        for m in candidates:
+            m_supp_norm = normalize_text_helper(m.fornecedor_cliente)
+            # Check if filtered supplier token exists in the row's supplier OR description
+            if m_supp_norm in match_text:
                 matched_mapping = m
                 break
         
-        # 2. If no specific match, try Generic Mapping
+        # 2. If no specific match, try Generic Mapping for this Cost Center
         if not matched_mapping:
-            for g_cc, g_m in generic_mappings.items():
-                if g_cc in cc:
-                    matched_mapping = g_m
-                    break
+            matched_mapping = generic_mappings.get(cc)
         
-        # 3. If match found, add to line values
+        # 3. Fallback: If still no match, try 'Categoria 1' as Cost Center (if available)
+        if not matched_mapping and 'Categoria 1' in row:
+            cat_cc = normalize_text_helper(row['Categoria 1'])
+            # Try specific
+            candidates_cat = specific_mappings.get(cat_cc, [])
+            for m in candidates_cat:
+                m_supp_norm = normalize_text_helper(m.fornecedor_cliente)
+                if m_supp_norm in match_text:
+                    matched_mapping = m
+                    break
+            # Try generic
+            if not matched_mapping:
+                matched_mapping = generic_mappings.get(cat_cc)
+
+        # 4. If match found, accumulate
         if matched_mapping:
             try:
                 line_num = int(matched_mapping.linha_pl)
                 line_values[line_num][month] += val
                 
                 # DEBUG: Log large matches
-                if abs(val) > 50000:
+                if abs(val) > 20000:
                     description = matched_mapping.observacoes
-                    logger.info(f"MATCH (Active Loop): Line {line_num} ({description}) matched {val:.2f} | CC: '{row['Centro de Custo 1']}' | Forn: '{row['Nome do fornecedor/cliente']}'")
+                    logger.info(f"MATCH: Line {line_num} ({description}) | Val: {val:.2f} | Basis: '{match_text}' matched '{matched_mapping.fornecedor_cliente}'")
             except:
                 continue
+        else:
+            # Optionally log unmapped significant items
+            if abs(val) > 10000:
+                logger.debug(f"UNMAPPED: {val:.2f} | CC: {cc} | Text: {match_text}")
 
     # ========================================================================
     # CALCULATE DERIVED VALUES FOR EACH MONTH
@@ -351,34 +410,50 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
     for m in month_strs:
         
         # ============================================
-        # FINANCIAL CALCULATIONS WITH CORRECT SIGNS
+        # FINANCIAL CALCULATIONS
         # ============================================
         
-        # 1. TOTAL REVENUE CALCULATION (Safety Enforced)
-        google_rev = abs(line_values[25].get(m, 0.0))      # Google Play (Line 25)
-        apple_rev = abs(line_values[33].get(m, 0.0))       # App Store (Line 33)
-        invest_income = abs(line_values[38].get(m, 0.0))   # Rendimentos (Line 38)
+        # 1. TOTAL REVENUE (Enforced positive)
+        google_rev = abs(line_values[25].get(m, 0.0))
+        apple_rev = abs(line_values[33].get(m, 0.0))
+        # Line 38 (Rendimentos) + Line 49 (Possible misc revenue)
+        invest_income = abs(line_values[38].get(m, 0.0)) + abs(line_values[49].get(m, 0.0))
         
         total_revenue = google_rev + apple_rev + invest_income
-        revenue_no_tax = google_rev + apple_rev  # Revenue subject to payment processing
+        revenue_no_tax = google_rev + apple_rev
         
-        # 2. PAYMENT PROCESSING COST  
+        # 2. PAYMENT PROCESSING (17.65%)
+        # Note: If user wants specific line items for negative adjustments (refunds),
+        # they should be mapped to an Expense line or kept in Revenue to reduce it.
+        # Current logic ABSOLUTES the revenue, so refunds (-100) become (+100).
+        # To fix this without breaking the "No Negative Revenue" rule for the Total:
+        # We should logically SUM the raw values first.
+        # But 'process_upload' already applies sign based on Tipo.
+        # If 'Devoluções' (Refunds) has Tipo='Saída', value is Negative.
+        # If we map 'Devoluções' to Line 25 (Google Revenue), it would REDUCE the sum.
+        # BUT, we are taking abs() below: `google_rev = abs(...)`.
+        # This INVALIDATES refunds if they are mapped to Revenue lines.
+        #
+        # FIX: We mapped 'Devoluções e Estornos' to Line 90 (Other Expenses) in get_initial_mappings.
+        # So Refunds are treated as Expenses. This preserves Revenue as purely Gross Sales
+        # and Refunds as an Expense line. This is safer and aligned with "No Negative Revenue".
+        
         payment_processing_rate = 0.1765
         payment_processing_cost = revenue_no_tax * payment_processing_rate
         
-        # 3. COST OF GOODS SOLD (COGS)
+        # 3. COGS
         cogs_sum = sum(abs(line_values[i].get(m, 0.0)) for i in range(43, 49))
         
         # 4. GROSS PROFIT
         gross_profit = total_revenue - payment_processing_cost - cogs_sum
         
-        # 5. OPERATING EXPENSES (OpEx)
-        marketing_abs = abs(line_values[56].get(m, 0.0))      # Marketing (Line 56)
-        wages_abs = abs(line_values[62].get(m, 0.0))          # Salaries (Line 62)
-        tech_support_abs = abs(line_values[68].get(m, 0.0)) + abs(line_values[65].get(m, 0.0))   # Tech Support
-        other_expenses_abs = abs(line_values[90].get(m, 0.0)) # Other (Line 90)
+        # 5. OPEX
+        marketing_abs = abs(line_values[56].get(m, 0.0))
+        wages_abs = abs(line_values[62].get(m, 0.0))
+        # Tech Support: 68 + 65
+        tech_support_abs = abs(line_values[68].get(m, 0.0)) + abs(line_values[65].get(m, 0.0))
+        other_expenses_abs = abs(line_values[90].get(m, 0.0))
         
-        # Total SG&A and OpEx (as positive values)
         sga_total = marketing_abs + wages_abs + tech_support_abs
         total_opex = sga_total + other_expenses_abs
         
@@ -386,26 +461,25 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         ebitda = gross_profit - total_opex
         
         # 7. NET RESULT
-        net_result = ebitda  # Simplified
+        net_result = ebitda
         
-        # Store calculated values for P&L display
-        line_values[100][m] = total_revenue           # (+) Revenue
-        line_values[101][m] = revenue_no_tax          # (+) Revenue no Tax
-        line_values[112][m] = google_rev              # (+) Google Revenue
-        line_values[113][m] = apple_rev               # (+) Apple Revenue
-        line_values[102][m] = -payment_processing_cost # (-) Payment Processing
-        line_values[103][m] = -cogs_sum               # (-) COGS
-        line_values[104][m] = gross_profit            # (=) Gross Profit
-        line_values[105][m] = -sga_total              # (-) SG&A
-        line_values[106][m] = ebitda                  # (=) EBITDA
-        line_values[107][m] = -marketing_abs          # (-) Marketing
-        line_values[108][m] = -wages_abs              # (-) Wages  
-        line_values[109][m] = -tech_support_abs       # (-) Tech Support
-        line_values[110][m] = -other_expenses_abs     # (-) Other Expenses
-        line_values[111][m] = net_result              # (=) Net Result
+        # Store for Display (Revenues +, Expenses -)
+        line_values[100][m] = total_revenue
+        line_values[101][m] = revenue_no_tax
+        line_values[112][m] = google_rev
+        line_values[113][m] = apple_rev
+        line_values[102][m] = -payment_processing_cost
+        line_values[103][m] = -cogs_sum
+        line_values[104][m] = gross_profit
+        line_values[105][m] = -sga_total
+        line_values[106][m] = ebitda
+        line_values[107][m] = -marketing_abs
+        line_values[108][m] = -wages_abs
+        line_values[109][m] = -tech_support_abs
+        line_values[110][m] = -other_expenses_abs
+        line_values[111][m] = net_result
         
-        # Log calculation details for verification
-        logger.info(f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, Gross Profit={gross_profit:.2f}")
+        logger.info(f"Month {m}: Rev={total_revenue:.2f}, EBITDA={ebitda:.2f}")
 
     # APPLY OVERRIDES (Restricted to Final Lines)
     FINAL_LINES = {100, 106, 111} # Revenue, EBITDA, Net Result
