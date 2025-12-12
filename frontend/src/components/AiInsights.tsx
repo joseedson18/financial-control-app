@@ -98,13 +98,13 @@ export default function AiInsights({ data, language }: AiInsightsProps) {
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
 
             <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
                     <div className="flex items-center gap-3">
                         <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/20">
                             <Brain size={24} className="text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                            <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                                 {t.title}
                                 <Sparkles size={16} className="text-yellow-400 animate-pulse" />
                             </h3>

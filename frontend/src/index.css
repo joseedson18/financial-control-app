@@ -69,3 +69,63 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
 }
+
+/* Responsive Utilities */
+@layer utilities {
+
+  /* Mobile-safe viewport height */
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  /* Hide scrollbar on mobile for cleaner UI */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Touch-friendly tap targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Responsive breakpoint helpers */
+@media (max-width: 640px) {
+  .glass-input {
+    @apply py-3.5 text-base;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    @apply py-3 text-sm;
+  }
+
+  /* Make modals full-width on mobile */
+  .modal-content {
+    @apply mx-4 max-w-full;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .liquid-glass {
+    @apply rounded-2xl;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  .safe-area-inset {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}

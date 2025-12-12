@@ -101,19 +101,20 @@ export default function FileUpload({ language }: FileUploadProps) {
             transition={{ duration: 0.5 }}
             className="max-w-3xl mx-auto"
         >
-            <GlassCard className="p-12 text-center relative overflow-hidden">
+            <GlassCard className="p-6 sm:p-8 lg:p-12 text-center relative overflow-hidden">
                 {/* Decorative background elements */}
 
 
                 {/* Icon Header */}
-                <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_rgba(6,182,212,0.2)] border border-white/10">
-                    <Upload size={40} className="text-cyan-400" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-[0_0_30px_rgba(6,182,212,0.2)] border border-white/10">
+                    <Upload size={32} className="text-cyan-400 sm:hidden" />
+                    <Upload size={40} className="text-cyan-400 hidden sm:block" />
                 </div>
 
-                <h2 className="text-3xl font-bold text-white mb-4">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">
                     {t.title}
                 </h2>
-                <p className="text-slate-400 mb-10 max-w-lg mx-auto">
+                <p className="text-slate-400 mb-6 sm:mb-10 max-w-lg mx-auto text-sm sm:text-base">
                     {t.subtitle}
                 </p>
 
@@ -126,7 +127,7 @@ export default function FileUpload({ language }: FileUploadProps) {
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
                     <div className={`
-                        relative border-2 border-dashed rounded-2xl p-12 transition-all duration-300
+                        relative border-2 border-dashed rounded-2xl p-6 sm:p-8 lg:p-12 transition-all duration-300
                         ${file
                             ? 'border-cyan-500 bg-cyan-500/5 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
                             : 'border-slate-600 hover:border-cyan-500/50 hover:bg-white/5'

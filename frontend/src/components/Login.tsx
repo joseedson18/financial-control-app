@@ -38,18 +38,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-            <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
-                <div className="text-center mb-8">
-                    <div className="w-24 h-24 mx-auto mb-4">
+        <div className="min-h-screen min-h-screen-safe bg-slate-900 flex items-center justify-center p-4 sm:p-6">
+            <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
+                <div className="text-center mb-6 sm:mb-8">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4">
                         <img
                             src="/logo.webp"
                             alt="UMatch Logo"
                             className="w-full h-full object-contain rounded-xl"
                         />
                     </div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Admin Portal</h1>
-                    <p className="text-slate-400">Sign in to access the dashboard</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Admin Portal</h1>
+                    <p className="text-slate-400 text-sm sm:text-base">Sign in to access the dashboard</p>
                 </div>
 
                 {error && (

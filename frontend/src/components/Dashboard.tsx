@@ -245,12 +245,12 @@ export default function Dashboard({ language }: DashboardProps) {
             transition={{ duration: 0.5 }}
             className="space-y-8 pb-12"
         >
-            <div className="flex justify-between items-center print:hidden">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Dashboard Overview</h2>
-                    <p className="text-slate-400 text-sm">Real-time financial insights</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">Dashboard Overview</h2>
+                    <p className="text-slate-400 text-xs sm:text-sm">Real-time financial insights</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                         onClick={async () => {
                             if (confirm(t.confirmClear || 'Are you sure?')) {
@@ -260,11 +260,11 @@ export default function Dashboard({ language }: DashboardProps) {
                                 } catch (e) { alert('Error'); }
                             }
                         }}
-                        className="btn-danger flex items-center gap-2"
+                        className="btn-danger flex items-center justify-center gap-2 w-full sm:w-auto text-sm"
                     >
                         <Trash2 size={18} /> {t.clearData}
                     </button>
-                    <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
+                    <button onClick={handlePrint} className="btn-secondary flex items-center justify-center gap-2 w-full sm:w-auto text-sm">
                         <Download size={18} /> {t.exportPdf}
                     </button>
                 </div>
@@ -276,7 +276,7 @@ export default function Dashboard({ language }: DashboardProps) {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <div onClick={() => showFormula('total_revenue')} className="cursor-pointer transition-all hover:scale-105">
                     <StatCard
                         title={t.revenue}
@@ -320,13 +320,13 @@ export default function Dashboard({ language }: DashboardProps) {
             </div>
 
             {/* Charts Row 1 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <GlassCard className="h-[400px]" gradient="cyan">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                <GlassCard className="h-[300px] sm:h-[400px]" gradient="cyan">
                     <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
                         <div className="w-1 h-5 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
                         {t.revenueVsCosts}
                     </h3>
-                    <div className="h-[300px] w-full">
+                    <div className="h-[220px] sm:h-[300px] w-full">
                         {data.monthly_data.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={data.monthly_data} barGap={8} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
@@ -357,12 +357,12 @@ export default function Dashboard({ language }: DashboardProps) {
                     </div>
                 </GlassCard>
 
-                <GlassCard className="h-[400px]" gradient="emerald">
+                <GlassCard className="h-[300px] sm:h-[400px]" gradient="emerald">
                     <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
                         <div className="w-1 h-5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                         {t.ebitda} Trend
                     </h3>
-                    <div className="h-[300px] w-full">
+                    <div className="h-[220px] sm:h-[300px] w-full">
                         {data.monthly_data.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={data.monthly_data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
@@ -398,13 +398,13 @@ export default function Dashboard({ language }: DashboardProps) {
             </div>
 
             {/* Charts Row 2 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <GlassCard className="h-[450px]" gradient="purple">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                <GlassCard className="h-[350px] sm:h-[450px]" gradient="purple">
                     <h3 className="text-lg font-semibold mb-6 text-white flex items-center gap-2">
                         <div className="w-1 h-5 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
                         {t.costStructure}
                     </h3>
-                    <div className="h-[350px] w-full">
+                    <div className="h-[260px] sm:h-[350px] w-full">
                         {costPieData.some((d: any) => d.value > 0) ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>

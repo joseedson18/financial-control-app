@@ -140,7 +140,7 @@ function App() {
   );
 
   return (
-    <div className="flex h-screen bg-[#0B1120] text-white overflow-hidden font-sans selection:bg-cyan-500/30 relative">
+    <div className="flex h-screen min-h-screen-safe bg-[#0B1120] text-white overflow-hidden font-sans selection:bg-cyan-500/30 relative">
       {/* Ambient Background Effects */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-900/20 rounded-full blur-[120px] animate-pulse-slow" />
@@ -210,7 +210,7 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
         {/* Header */}
-        <header className="h-20 flex items-center px-6 lg:px-8 justify-between bg-[#0B1120]/50 backdrop-blur-md border-b border-white/5 sticky top-0 z-30">
+        <header className="h-16 sm:h-20 flex items-center px-4 sm:px-6 lg:px-8 justify-between bg-[#0B1120]/50 backdrop-blur-md border-b border-white/5 sticky top-0 z-30 safe-area-inset">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -242,7 +242,7 @@ function App() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-auto p-6 lg:p-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
           <div className="max-w-7xl mx-auto">
             <motion.div
               key={activeTab}
@@ -251,13 +251,13 @@ function App() {
               transition={{ duration: 0.4 }}
               className="mb-8"
             >
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-3 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-2 sm:mb-3 tracking-tight">
                 {activeTab === 'upload' && t.uploadTitle}
                 {activeTab === 'dashboard' && t.dashboardTitle}
                 {activeTab === 'pnl' && t.pnlTitle}
                 {activeTab === 'mappings' && t.mappingsTitle}
               </h2>
-              <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">
+              <p className="text-slate-400 text-sm sm:text-base lg:text-lg max-w-2xl leading-relaxed">
                 {activeTab === 'upload' && t.uploadDesc}
                 {activeTab === 'dashboard' && t.dashboardDesc}
                 {activeTab === 'pnl' && t.pnlDesc}
@@ -271,7 +271,7 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-4 right-6 pointer-events-none z-50 opacity-50 hover:opacity-100 transition-opacity">
+      <footer className="fixed bottom-2 sm:bottom-4 right-4 sm:right-6 pointer-events-none z-50 opacity-50 hover:opacity-100 transition-opacity safe-area-inset">
         <p className="text-[10px] text-slate-500 font-medium tracking-wider uppercase">
           POWERED BY FINANCE SPECIALIST CASTRO M. All Rights Reserved.
         </p>
