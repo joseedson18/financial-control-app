@@ -1,3 +1,5 @@
+import logging
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -6,11 +8,17 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 
 # Configuration
-SECRET_KEY = "your-secret-key-keep-it-secret" # In production, use env var
+DEFAULT_SECRET_KEY = "your-secret-key-keep-it-secret"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-__all__ = ['TOKEN', 'create_access_token', 'get_current_user', 'USERS_DB', 'verify_password', 'get_password_hash', 'ACCESS_TOKEN_EXPIRE_MINUTES']
+_logged_missing_secret_warning = False
+_logged_placeholder_warning = False
+
+__all__ = [
+    'Token', 'create_access_token', 'get_current_user', 'USERS_DB',
+    'verify_password', 'get_password_hash', 'ACCESS_TOKEN_EXPIRE_MINUTES'
+]
 
 # Admin Users (Hardcoded as requested)
 # Using simple SHA256 hashing for passwords
@@ -35,7 +43,26 @@ USERS_DB = {
     }
 }
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
+
+logger = logging.getLogger(__name__)
+
+
+def _get_secret_key() -> str:
+    global _logged_missing_secret_warning, _logged_placeholder_warning
+    secret_key = os.getenv("SECRET_KEY")
+
+    if not secret_key:
+        if not _logged_missing_secret_warning:
+            logger.warning("SECRET_KEY environment variable not set; using default placeholder key.")
+            _logged_missing_secret_warning = True
+        secret_key = DEFAULT_SECRET_KEY
+
+    if secret_key == DEFAULT_SECRET_KEY and not _logged_placeholder_warning:
+        logger.warning("Using default SECRET_KEY; set the SECRET_KEY environment variable for production use.")
+        _logged_placeholder_warning = True
+
+    return secret_key
 
 class Token(BaseModel):
     access_token: str
@@ -51,13 +78,15 @@ def get_password_hash(password):
     return hash_password(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    secret_key = _get_secret_key()
+
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
     return encoded_jwt
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -67,7 +96,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
