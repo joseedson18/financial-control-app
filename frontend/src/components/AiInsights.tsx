@@ -142,7 +142,7 @@ export default function AiInsights({ data, language }: AiInsightsProps) {
                                         className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
                                     <button
                                         onClick={() => handleSaveKey(apiKey)}
-                                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                        className="btn-primary"
                                     >
                                         {t.save}
                                     </button>
@@ -169,7 +169,7 @@ export default function AiInsights({ data, language }: AiInsightsProps) {
 
                 {insights && (
                     <div className="prose prose-invert max-w-none">
-                        <div className="bg-slate-800/50 rounded-xl p-6 border border-white/5">
+                        <div className="bg-[#0f172a]/40 rounded-2xl p-6 sm:p-8 border border-white/5 shadow-inner">
                             <ReactMarkdown>{insights}</ReactMarkdown>
                         </div>
                         <button
@@ -185,9 +185,9 @@ export default function AiInsights({ data, language }: AiInsightsProps) {
                     <div className="text-center p-8">
                         <button
                             onClick={handleGenerate}
-                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-medium shadow-lg shadow-purple-500/25 transition-all hover:scale-105 flex items-center gap-2 mx-auto"
+                            className="btn-primary py-3 px-8 text-base shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_30px_rgba(147,51,234,0.5)] bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center gap-3 mx-auto"
                         >
-                            <Sparkles size={20} />
+                            <Sparkles size={20} className="text-purple-200" />
                             {t.generate}
                         </button>
                     </div>

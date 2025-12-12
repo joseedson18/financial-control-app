@@ -225,11 +225,11 @@ export default function PnLTable({ language }: PnLTableProps) {
             <GlassCard className="overflow-hidden p-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-gradient-to-r from-slate-900 to-slate-800 text-slate-300 font-semibold uppercase text-xs border-b-2 border-cyan-500/30">
+                        <thead className="bg-[#0f172a] text-slate-400 font-semibold uppercase text-[11px] tracking-wider border-b border-white/10">
                             <tr>
-                                <th className="px-6 py-5 sticky left-0 bg-gradient-to-r from-slate-900 to-slate-800 backdrop-blur-sm z-10 min-w-[300px] tracking-wider">Description</th>
+                                <th className="px-6 py-4 sticky left-0 bg-[#0f172a] z-20 min-w-[300px]">Description</th>
                                 {data.headers.map(header => (
-                                    <th key={header} className="px-6 py-5 text-right min-w-[120px] tracking-wider font-bold">{header}</th>
+                                    <th key={header} className="px-6 py-4 text-right min-w-[120px] font-bold text-slate-300">{header}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -256,18 +256,20 @@ export default function PnLTable({ language }: PnLTableProps) {
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: index * 0.02 }}
                                         className={`
-                                            group transition-colors hover:bg-white/5
-                                            ${isHeader ? 'bg-gradient-to-r from-slate-800/40 to-slate-800/20 font-semibold text-cyan-300 border-b border-cyan-900/30' : ''}
-                                            ${isTotal ? 'bg-gradient-to-r from-slate-800/60 to-slate-800/30 font-bold border-t-2 border-cyan-500/30 shadow-lg' : ''}
-                                            ${!isHeader && !isTotal ? 'border-b border-slate-800/50' : ''}
+                                            group transition-colors odd:bg-transparent even:bg-white/[0.02] hover:!bg-white/[0.04]
+                                            ${isHeader ? '!bg-slate-800/40 text-cyan-300 font-semibold border-y border-white/5' : ''}
+                                            ${isTotal ? '!bg-slate-800/60 font-bold border-y border-white/10 shadow-lg' : ''}
+                                            ${!isHeader && !isTotal ? 'border-b border-white/[0.02]' : ''}
                                         `}
                                     >
-                                        <td className={`px-6 py-4 sticky left-0 backdrop-blur-sm group-hover:bg-slate-800/40 transition-colors ${isHeader ? 'bg-slate-800/40' : isTotal ? 'bg-slate-800/60' : 'bg-slate-900/20'
-                                            }`}>
+                                        <td className={`px-6 py-3.5 sticky left-0 transition-colors z-10 text-sm
+                                            group-odd:bg-[#0b1221] group-even:bg-[#0d1526] group-hover:!bg-[#111a2d]
+                                            ${isHeader ? '!bg-[#1e293b]' : isTotal ? '!bg-[#1e293b]' : ''}
+                                        `}>
                                             <div className="flex items-center gap-2" style={{ paddingLeft: `${row.indent_level * 16}px` }}>
-                                                {isHeader && <ChevronDown size={14} className="text-cyan-400" />}
+                                                {isHeader && <ChevronDown size={14} className="text-cyan-400/70" />}
                                                 {!isHeader && !isTotal && <div className="w-4" />}
-                                                <span className={`${isHeader ? 'text-cyan-300 uppercase tracking-wide text-xs' : isTotal ? 'text-white' : 'text-slate-200'}`}>
+                                                <span className={`${isHeader ? 'uppercase tracking-wider text-[11px]' : ''}`}>
                                                     {row.description}
                                                 </span>
                                             </div>

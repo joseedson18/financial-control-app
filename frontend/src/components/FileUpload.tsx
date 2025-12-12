@@ -114,12 +114,12 @@ export default function FileUpload({ language }: FileUploadProps) {
                 <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">
                     {t.title}
                 </h2>
-                <p className="text-slate-400 mb-6 sm:mb-10 max-w-lg mx-auto text-sm sm:text-base">
+                <p className="text-slate-400 mb-8 sm:mb-12 max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
                     {t.subtitle}
                 </p>
 
                 {/* Upload Area */}
-                <div className="relative group cursor-pointer mb-8 max-w-xl mx-auto">
+                <div className="relative group cursor-pointer mb-10 max-w-xl mx-auto">
                     <input
                         type="file"
                         accept=".csv"
@@ -127,10 +127,10 @@ export default function FileUpload({ language }: FileUploadProps) {
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
                     <div className={`
-                        relative border-2 border-dashed rounded-2xl p-6 sm:p-8 lg:p-12 transition-all duration-300
+                        relative border-2 border-dashed rounded-2xl p-8 sm:p-12 transition-all duration-300
                         ${file
-                            ? 'border-cyan-500 bg-cyan-500/5 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
-                            : 'border-slate-600 hover:border-cyan-500/50 hover:bg-white/5'
+                            ? 'border-cyan-500 bg-cyan-500/10 shadow-[0_0_30px_rgba(6,182,212,0.15)]'
+                            : 'border-white/10 hover:border-cyan-500/50 hover:bg-white/[0.02] hover:shadow-lg hover:shadow-cyan-500/5'
                         }
                     `}>
                         {file ? (
@@ -164,11 +164,8 @@ export default function FileUpload({ language }: FileUploadProps) {
                     onClick={handleUpload}
                     disabled={!file || status === 'uploading'}
                     className={`
-                        w-full max-w-xl mx-auto py-4 px-6 rounded-xl font-semibold text-white text-lg
-                        transition-all duration-300 flex items-center justify-center gap-3
-                        ${!file || status === 'uploading'
-                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02]'}
+                        w-full max-w-xl mx-auto btn-primary py-4 text-lg
+                        ${!file || status === 'uploading' ? 'opacity-50 cursor-not-allowed grayscale' : ''}
                     `}
                 >
                     {status === 'uploading' ? (

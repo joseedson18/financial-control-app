@@ -113,27 +113,27 @@ function App() {
         setActiveTab(id);
         setIsSidebarOpen(false);
       }}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${activeTab === id
-        ? 'text-white shadow-[0_0_20px_rgba(6,182,212,0.15)]'
-        : 'text-slate-400 hover:text-white hover:bg-white/5'
+      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${activeTab === id
+        ? 'text-white shadow-[0_0_20px_rgba(6,182,212,0.2)] bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20'
+        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
         }`}
     >
       {activeTab === id && (
         <motion.div
           layoutId="activeTab"
-          className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-white/10 rounded-xl"
+          className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl"
           initial={false}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
       )}
-      <div className="relative z-10 flex items-center gap-3">
-        <Icon size={20} className={`transition-colors ${activeTab === id ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
-        <span className="font-medium">{label}</span>
+      <div className="relative z-10 flex items-center gap-3.5">
+        <Icon size={20} className={`transition-all duration-300 ${activeTab === id ? 'text-cyan-400 scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'text-slate-500 group-hover:text-cyan-200'}`} />
+        <span className={`font-medium transition-all duration-300 ${activeTab === id ? 'tracking-wide' : ''}`}>{label}</span>
       </div>
       {activeTab === id && (
         <motion.div
           layoutId="activeIndicator"
-          className="absolute right-3 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]"
+          className="absolute right-3 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"
         />
       )}
     </button>
@@ -149,21 +149,22 @@ function App() {
 
       {/* Sidebar */}
       <aside className={`
-                fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#0f172a]/80 backdrop-blur-xl border-r border-white/5 transform transition-transform duration-300 ease-out
+                fixed lg:static inset-y-0 left-0 z-50 w-80 bg-[#0f172a]/90 backdrop-blur-2xl border-r border-white/[0.08] transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) shadow-2xl lg:shadow-none
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-white/5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 p-1">
-                  <img src="/logo.webp" alt="UMatch" className="w-full h-full object-contain" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25 p-1 relative group overflow-hidden">
+                  <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity mix-blend-overlay" />
+                  <img src="/logo.webp" alt="UMatch" className="w-full h-full object-contain drop-shadow-md" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-white tracking-tight">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-tight">
                     UMatch
                   </h1>
-                  <p className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Control & Analytics</p>
+                  <p className="text-[10px] text-cyan-400 font-bold tracking-widest uppercase">Financial Intelligence</p>
                 </div>
               </div>
               <button
