@@ -63,11 +63,7 @@ export default function FileUpload({ language }: FileUploadProps) {
         formData.append('file', file);
 
         try {
-            const response = await api.post('/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const response = await api.post('/upload', formData);
             setStatus('success');
             setMessage(`${t.success} (${response.data.rows} records)`);
 
