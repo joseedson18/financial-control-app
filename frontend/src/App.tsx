@@ -70,30 +70,15 @@ const [language, setLanguage] = useState<'pt' | 'en'>('pt');
 const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 const handleLogout = () => {
-  // Logout disabled since login is disabled
-  localStorage.removeItem('token');
-  window.location.reload();
-};
-
-// TEMPORARILY DISABLED FOR DEPLOYMENT TESTING
-// if (!isAuthenticated) {
-//   return <Login onLogin={handleLogin} />;
-// }
-
-const t = translations[language];
-
-const renderContent = () => {
-  switch (activeTab) {
-    case 'upload':
-      return <FileUpload language={language} />;
+  return <FileUpload language={language} />;
     case 'dashboard':
-      return <Dashboard language={language} />;
+return <Dashboard language={language} />;
     case 'pnl':
-      return <PnLTable language={language} />;
+return <PnLTable language={language} />;
     case 'mappings':
-      return <MappingManager language={language} />;
+return <MappingManager language={language} />;
     default:
-      return <FileUpload language={language} />;
+return <FileUpload language={language} />;
   }
 };
 
