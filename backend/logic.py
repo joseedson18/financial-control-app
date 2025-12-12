@@ -463,6 +463,17 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         # Log calculation details for verification
         logger.info(f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, Gross Profit={gross_profit:.2f}, Net Result={net_result:.2f}")
         
+        # DEBUG: Identify top expense drivers if EBITDA is negative or Expenses are high
+        if ebitda < 0 or sga_total + other_expenses_abs > 50000:
+            logger.info(f"--- Top Expenses for {m} ---")
+            # Filter rows for this month
+            month_rows = df[df['Mes_Competencia'] == m]
+            # Get costs and expenses (exclude revenues)
+            expense_rows = month_rows[month_rows['Valor_Num'] < 0].sort_values(by='Valor_Num', ascending=True).head(5)
+            for _, row in expense_rows.iterrows():
+                logger.info(f"  {row['Data de competência']} | {row['Nome do fornecedor/cliente']} | {row['Centro de Custo 1']} | : {row['Valor_Num']:.2f}")
+            logger.info("-----------------------------")
+        
     # APPLY OVERRIDES
     if overrides:
         for line_str, months_data in overrides.items():
