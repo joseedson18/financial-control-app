@@ -5,6 +5,7 @@ from datetime import datetime
 import io
 import logging
 from typing import List, Dict, Any
+from collections import defaultdict
 from models import MappingItem, PnLItem, PnLResponse, DashboardData
 
 # Configure logging for financial calculations
@@ -465,24 +466,6 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         line_values[110][m] = -other_expenses_abs     # (-) Other Expenses
         line_values[111][m] = net_result              # (=) Net Result
         
-        # DEBUG: Breakdown of expenses if EBITDA is negative (to explain to user)
-        if ebitda < 0 or sga_total + other_expenses_abs > 50000:
-            logger.info(f"--- Expense Breakdown for {m} ---")
-            breakdown = defaultdict(float)
-            for line_num in range(43, 100): # Expense lines
-                val = line_values[line_num].get(m, 0.0)
-                if val != 0:
-                    # Find description for this line
-                    # We don't have descriptions in line_values directly, need to look up in P&L structure?
-                    # Or just use line number
-                    breakdown[line_num] += val
-            
-            sorted_breakdown = sorted(breakdown.items(), key=lambda x: x[1]) # Sort by value (most negative first)
-            for ln, v in sorted_breakdown:
-                logger.info(f"  Line {ln}: {v:.2f}")
-            logger.info(f"  Total Calculated Expenses (from lines): {sum(breakdown.values()):.2f}")
-            logger.info("-----------------------------")
-            
         # Log calculation details for verification
         logger.info(f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, Gross Profit={gross_profit:.2f}, Net Result={net_result:.2f}")
         
