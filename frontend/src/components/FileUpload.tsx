@@ -103,7 +103,7 @@ export default function FileUpload({ language }: FileUploadProps) {
         >
             <GlassCard className="p-12 text-center relative overflow-hidden">
                 {/* Decorative background elements */}
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500" />
+
 
                 {/* Icon Header */}
                 <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_rgba(6,182,212,0.2)] border border-white/10">
