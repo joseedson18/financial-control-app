@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import secrets
 from datetime import datetime, timedelta
@@ -11,6 +10,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from backend.config import logger
 
 # Configuration
 ALGORITHM = "HS256"
@@ -27,13 +27,12 @@ _users_cache_value: Optional[dict] = None
 load_dotenv()
 
 __all__ = [
-    'Token', 'create_access_token', 'ensure_auth_configured', 'get_current_user',
-    'USERS_DB', 'verify_password', 'get_password_hash', 'ACCESS_TOKEN_EXPIRE_MINUTES'
+    'Token', 'TokenData', 'create_access_token', 'ensure_auth_configured',
+    'get_current_user', 'USERS_DB', 'verify_password', 'get_password_hash',
+    'ACCESS_TOKEN_EXPIRE_MINUTES'
 ]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
-
-logger = logging.getLogger(__name__)
 
 
 def hash_password(password: str) -> str:
