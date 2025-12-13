@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from datetime import datetime
 import io
 import logging
 from typing import List, Dict, Any
@@ -13,24 +12,55 @@ from models import MappingItem, PnLItem, PnLResponse, DashboardData
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+
+def normalize_text_helper(s: Any) -> str:
+    """Lowercase, strip, and remove accents for consistent matching."""
+    if pd.isna(s):
+        return ""
+    s = str(s).strip().lower()
+    s = unicodedata.normalize("NFKD", s)
+    return "".join(ch for ch in s if not unicodedata.combining(ch))
+
+
+PAYROLL_COST_CENTER = "Wages Expenses"
+PAYROLL_COST_CENTER_NORMALIZED = normalize_text_helper(PAYROLL_COST_CENTER)
+PAYROLL_KEYWORDS = [
+    normalize_text_helper(k)
+    for k in [
+        "folha de pagamento",
+        "folha pagamento",
+        "folha",
+        "pro labore",
+        "pro-labore",
+        "pró labore",
+        "pró-labore",
+        "salario",
+        "salário",
+        "holerite",
+        "prestador de servico pj",
+        "payroll",
+    ]
+]
+
 def process_upload(file_content: bytes) -> pd.DataFrame:
     """
     Process the uploaded CSV file from Conta Azul.
     """
     # Try different encodings and separators
     df = None
+    date_aliases = ['Data de competência', 'Data de Competência', 'Data Competência', 'data_competencia', 'Data']
     encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
     separators = [',', ';', '\t']
     last_error = None
-    
+
     for encoding in encodings:
         for sep in separators:
             try:
                 # Try strict parsing first
                 df = pd.read_csv(io.BytesIO(file_content), encoding=encoding, sep=sep)
-                
+
                 # Check if it has the critical column 'Data de competência'
-                if 'Data de competência' in df.columns:
+                if any(col in df.columns for col in date_aliases):
                     break
                 else:
                     df = None # Not the right separator
@@ -45,7 +75,7 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             try:
                 print(f"⚠️ Strict parsing failed. Retrying with on_bad_lines='skip', encoding={encoding}, sep='{sep}'")
                 df = pd.read_csv(io.BytesIO(file_content), encoding=encoding, sep=sep, on_bad_lines='skip', engine='python')
-                if 'Data de competência' in df.columns:
+                if any(col in df.columns for col in date_aliases):
                     break
                 else:
                     df = None
@@ -77,7 +107,9 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             'Natureza', 'natureza'
         ],
         'Centro de Custo 1': ['Centro de Custo 1', 'Centro de Custo', 'CentroCusto', 'centro_custo', 'Centro de custo 1'],
-        'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente']
+        'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente'],
+        'Descrição': ['Descrição', 'Descricao', 'Descrição do Lançamento', 'Descricao do Lancamento', 'Histórico', 'Historico'],
+        'Categoria 1': ['Categoria 1', 'Categoria', 'category']
     }
     
     # Try to find and rename columns
@@ -115,13 +147,6 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         return pd.NaT
 
     df['Data de competência'] = df['Data de competência'].apply(parse_dates)
-    
-    def normalize_text(s: Any) -> str:
-        if pd.isna(s):
-            return ""
-        s = str(s).strip().lower()
-        s = unicodedata.normalize("NFKD", s)
-        return "".join(ch for ch in s if not unicodedata.combining(ch))
     
     def converter_valor_br(valor_str: Any) -> float:
         if pd.isna(valor_str) or str(valor_str).strip() == "":
@@ -161,7 +186,7 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
     df['Valor_Num'] = df['Valor (R$)'].apply(converter_valor_br)
 
     if 'Tipo' in df.columns:
-        tipo = df['Tipo'].apply(normalize_text)
+        tipo = df['Tipo'].apply(normalize_text_helper)
 
         is_saida = (
             tipo.str.contains('saida') |
@@ -190,7 +215,36 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         df['Centro de Custo 1'] = df['Centro de Custo 1'].astype(str).str.strip()
     if 'Nome do fornecedor/cliente' in df.columns:
         df['Nome do fornecedor/cliente'] = df['Nome do fornecedor/cliente'].astype(str).str.strip()
-    
+    if 'Categoria 1' in df.columns:
+        df['Categoria 1'] = df['Categoria 1'].astype(str).str.strip()
+    if 'Descrição' in df.columns:
+        df['Descrição'] = df['Descrição'].astype(str).str.strip()
+
+    # Ensure payroll transactions are routed to Wages Expenses (P&L line 62)
+
+    def enforce_wages_cost_center(row):
+        current_cc = str(row.get('Centro de Custo 1', '') or '').strip()
+        cc_norm = normalize_text_helper(current_cc)
+
+        # Already correctly tagged
+        if cc_norm == PAYROLL_COST_CENTER_NORMALIZED:
+            return PAYROLL_COST_CENTER
+
+        # Build a combined text field to search for payroll hints
+        combined_text = ' '.join([
+            cc_norm,
+            normalize_text_helper(row.get('Categoria 1', '')),
+            normalize_text_helper(row.get('Descrição', '')),
+            normalize_text_helper(row.get('Nome do fornecedor/cliente', ''))
+        ])
+
+        if any(keyword in combined_text for keyword in PAYROLL_KEYWORDS):
+            return PAYROLL_COST_CENTER
+
+        return current_cc
+
+    df['Centro de Custo 1'] = df.apply(enforce_wages_cost_center, axis=1)
+
     return df
 
 def get_initial_mappings() -> List[MappingItem]:
@@ -271,17 +325,7 @@ def get_initial_mappings() -> List[MappingItem]:
     ]
     return mappings
 
-def normalize_text_helper(s: Any) -> str:
-    # Helper outside process_upload for use in calculate_pnl
-    if pd.isna(s):
-        return ""
-    s = str(s).strip().lower()
-    s = unicodedata.normalize("NFKD", s)
-    return "".join(ch for ch in s if not unicodedata.combining(ch))
-
 def prepare_mappings(mappings: List[MappingItem]):
-    from collections import defaultdict
-    
     # Use defaultdict(list) for specific mappings to handle multiple patterns for same CC
     specific_by_cc = defaultdict(list)
     generic_by_cc = {}
@@ -478,8 +522,26 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         line_values[109][m] = -tech_support_abs
         line_values[110][m] = -other_expenses_abs
         line_values[111][m] = net_result
-        
-        logger.info(f"Month {m}: Rev={total_revenue:.2f}, EBITDA={ebitda:.2f}")
+
+        logger.info(
+            f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, "
+            f"Gross Profit={gross_profit:.2f}, Net Result={net_result:.2f}"
+        )
+
+        # DEBUG: Breakdown of expenses if EBITDA is negative or expenses spike
+        if ebitda < 0 or sga_total + other_expenses_abs > 50000:
+            logger.info(f"--- Expense Breakdown for {m} ---")
+            breakdown = defaultdict(float)
+            for line_num in range(43, 100):  # Expense lines
+                val = line_values[line_num].get(m, 0.0)
+                if val != 0:
+                    breakdown[line_num] += val
+
+            sorted_breakdown = sorted(breakdown.items(), key=lambda x: x[1])
+            for ln, v in sorted_breakdown:
+                logger.info(f"  Line {ln}: {v:.2f}")
+            logger.info(f"  Total Calculated Expenses (from lines): {sum(breakdown.values()):.2f}")
+            logger.info("-----------------------------")
 
     # APPLY OVERRIDES (Restricted to Final Lines)
     FINAL_LINES = {100, 106, 111} # Revenue, EBITDA, Net Result

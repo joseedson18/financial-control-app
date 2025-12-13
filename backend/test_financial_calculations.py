@@ -22,7 +22,7 @@ import os
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from logic import calculate_pnl, get_dashboard_data
+from logic import calculate_pnl, get_dashboard_data, get_initial_mappings, process_upload
 from models import MappingItem, PnLResponse, DashboardData
 
 
@@ -67,6 +67,13 @@ def create_test_dataframe(rows_data: list) -> pd.DataFrame:
         'Categoria': [r.get('category', 'RECEITAS') for r in rows_data],
     }
     return pd.DataFrame(df_data)
+
+
+def _find_row_by_description(pnl: PnLResponse, description: str):
+    for row in pnl.rows:
+        if row.description == description:
+            return row
+    raise AssertionError(f"Row with description '{description}' not found")
 
 
 class TestRevenueAggregation:
@@ -217,8 +224,21 @@ class TestDashboardKPIs:
         ]
         
         dashboard = get_dashboard_data(df, mappings)
-        
+
         assert isinstance(dashboard, DashboardData)
+
+
+class TestUploadProcessing:
+    def test_category_alias_maps_and_supports_payroll_detection(self):
+        csv_content = """Data,Valor,Entrada/Saida,Centro de Custo,Nome Fornecedor,Categoria
+01/01/2024,1000,Saida,,RH,Folha de pagamento
+""".encode("utf-8")
+
+        df = process_upload(csv_content)
+
+        assert "Categoria 1" in df.columns
+        assert df.loc[0, "Categoria 1"] == "Folha de pagamento"
+        assert df.loc[0, "Centro de Custo 1"] == "Wages Expenses"
     
     def test_dashboard_has_monthly_data(self):
         """Verify dashboard includes monthly data for charts"""
@@ -316,10 +336,73 @@ class TestMappingLogic:
         ]
         
         pnl = calculate_pnl(df, mappings)
-        
+
         # Check COGS line (Line 43 accumulates to Line 6/103)
         # Line 6 is COGS.
         cogs_row = next((r for r in pnl.rows if r.line_number == 6), None)
         assert cogs_row is not None
         assert cogs_row.values['2024-01'] == -100.0
+
+
+def test_payroll_category_reroutes_to_wages_cost_center(tmp_path):
+    """Payroll-like descriptions/categories without a cost center should map to Wages."""
+
+    csv_content = """Data de competência,Valor (R$),Centro de Custo 1,Nome do fornecedor/cliente,Categoria 1,Descrição
+01/01/2024,-1000.00,,Fulano da Silva,Folha de Pagamento,Pagamento salário
+"""
+
+    csv_file = tmp_path / "payroll.csv"
+    csv_file.write_text(csv_content, encoding="utf-8")
+
+    df = process_upload(csv_file.read_bytes())
+
+    assert df.loc[0, 'Centro de Custo 1'] == "Wages Expenses", "Payroll entries should be forced to Wages Expenses"
+
+    pnl = calculate_pnl(df, get_initial_mappings())
+    wages_row = _find_row_by_description(pnl, "Salários (Wages)")
+    month = pnl.headers[0]
+
+    assert wages_row.values[month] == -1000.0, "Mapped payroll value should flow into P&L line 62 and dashboard"
+
+
+def test_payroll_cost_center_aliases_reroute_to_wages(tmp_path):
+    """Cost center aliases like "Folha de Pagamento" should be coerced to Wages."""
+
+    csv_content = """Data de competência,Valor (R$),Centro de Custo 1,Nome do fornecedor/cliente,Categoria 1,Descrição
+01/02/2024,-2000.00,Folha de Pagamento,Fulano da Silva,,Pagamento jan/24
+"""
+
+    csv_file = tmp_path / "payroll_cc_alias.csv"
+    csv_file.write_text(csv_content, encoding="utf-8")
+
+    df = process_upload(csv_file.read_bytes())
+
+    assert df.loc[0, 'Centro de Custo 1'] == "Wages Expenses"
+
+    pnl = calculate_pnl(df, get_initial_mappings())
+    wages_row = _find_row_by_description(pnl, "Salários (Wages)")
+    month = pnl.headers[0]
+
+    assert wages_row.values[month] == -2000.0
+
+
+def test_payroll_accented_keywords_are_detected(tmp_path):
+    """Accented payroll keywords should be normalized when enforcing wages cost center."""
+
+    csv_content = """Data de competência,Valor (R$),Centro de Custo 1,Nome do fornecedor/cliente,Categoria 1,Descrição
+01/03/2024,-1500.00,,Fulano da Silva,,Pagamento de salário mensal
+"""
+
+    csv_file = tmp_path / "payroll_accent.csv"
+    csv_file.write_text(csv_content, encoding="utf-8")
+
+    df = process_upload(csv_file.read_bytes())
+
+    assert df.loc[0, 'Centro de Custo 1'] == "Wages Expenses"
+
+    pnl = calculate_pnl(df, get_initial_mappings())
+    wages_row = _find_row_by_description(pnl, "Salários (Wages)")
+    month = pnl.headers[0]
+
+    assert wages_row.values[month] == -1500.0
 
