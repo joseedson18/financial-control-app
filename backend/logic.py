@@ -106,7 +106,8 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             'Natureza', 'natureza'
         ],
         'Centro de Custo 1': ['Centro de Custo 1', 'Centro de Custo', 'CentroCusto', 'centro_custo', 'Centro de custo 1'],
-        'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente']
+        'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente'],
+        'Descrição': ['Descrição', 'Descricao', 'Descrição do Lançamento', 'Descricao do Lancamento', 'Histórico', 'Historico']
     }
     
     # Try to find and rename columns
@@ -214,6 +215,8 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         df['Nome do fornecedor/cliente'] = df['Nome do fornecedor/cliente'].astype(str).str.strip()
     if 'Categoria 1' in df.columns:
         df['Categoria 1'] = df['Categoria 1'].astype(str).str.strip()
+    if 'Descrição' in df.columns:
+        df['Descrição'] = df['Descrição'].astype(str).str.strip()
 
     # Ensure payroll transactions are routed to Wages Expenses (P&L line 62)
 
