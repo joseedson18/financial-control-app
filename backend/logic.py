@@ -13,6 +13,15 @@ from models import MappingItem, PnLItem, PnLResponse, DashboardData
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+
+def normalize_text_helper(s: Any) -> str:
+    """Lowercase, strip, and remove accents for consistent matching."""
+    if pd.isna(s):
+        return ""
+    s = str(s).strip().lower()
+    s = unicodedata.normalize("NFKD", s)
+    return "".join(ch for ch in s if not unicodedata.combining(ch))
+
 def process_upload(file_content: bytes) -> pd.DataFrame:
     """
     Process the uploaded CSV file from Conta Azul.
@@ -116,13 +125,6 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
 
     df['Data de competência'] = df['Data de competência'].apply(parse_dates)
     
-    def normalize_text(s: Any) -> str:
-        if pd.isna(s):
-            return ""
-        s = str(s).strip().lower()
-        s = unicodedata.normalize("NFKD", s)
-        return "".join(ch for ch in s if not unicodedata.combining(ch))
-    
     def converter_valor_br(valor_str: Any) -> float:
         if pd.isna(valor_str) or str(valor_str).strip() == "":
             return 0.0
@@ -161,7 +163,7 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
     df['Valor_Num'] = df['Valor (R$)'].apply(converter_valor_br)
 
     if 'Tipo' in df.columns:
-        tipo = df['Tipo'].apply(normalize_text)
+        tipo = df['Tipo'].apply(normalize_text_helper)
 
         is_saida = (
             tipo.str.contains('saida') |
@@ -304,14 +306,6 @@ def get_initial_mappings() -> List[MappingItem]:
         m("Devoluções e Estornos", "Diversos", 90, "Despesa", "Refunds & Chargebacks"),
     ]
     return mappings
-
-def normalize_text_helper(s: Any) -> str:
-    # Helper outside process_upload for use in calculate_pnl
-    if pd.isna(s):
-        return ""
-    s = str(s).strip().lower()
-    s = unicodedata.normalize("NFKD", s)
-    return "".join(ch for ch in s if not unicodedata.combining(ch))
 
 def prepare_mappings(mappings: List[MappingItem]):
     from collections import defaultdict
