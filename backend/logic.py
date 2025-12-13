@@ -20,6 +20,26 @@ def normalize_text_helper(s: Any) -> str:
     s = unicodedata.normalize("NFKD", s)
     return "".join(ch for ch in s if not unicodedata.combining(ch))
 
+
+PAYROLL_COST_CENTER = "Wages Expenses"
+PAYROLL_KEYWORDS = [
+    normalize_text_helper(k)
+    for k in [
+        "folha de pagamento",
+        "folha pagamento",
+        "folha",
+        "pro labore",
+        "pro-labore",
+        "pró labore",
+        "pró-labore",
+        "salario",
+        "salário",
+        "holerite",
+        "prestador de servico pj",
+        "payroll",
+    ]
+]
+
 def process_upload(file_content: bytes) -> pd.DataFrame:
     """
     Process the uploaded CSV file from Conta Azul.
@@ -194,21 +214,14 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         df['Categoria 1'] = df['Categoria 1'].astype(str).str.strip()
 
     # Ensure payroll transactions are routed to Wages Expenses (P&L line 62)
-    payroll_keywords_raw = [
-        'folha de pagamento', 'folha pagamento', 'folha',
-        'pro labore', 'pro-labore', 'pró labore', 'pró-labore',
-        'salario', 'salário', 'holerite',
-        'prestador de servico pj', 'payroll'
-    ]
-    payroll_keywords = [normalize_text_helper(k) for k in payroll_keywords_raw]
 
     def enforce_wages_cost_center(row):
         current_cc = str(row.get('Centro de Custo 1', '') or '').strip()
         cc_norm = normalize_text_helper(current_cc)
 
         # Already correctly tagged
-        if cc_norm == 'wages expenses':
-            return 'Wages Expenses'
+        if cc_norm == normalize_text_helper(PAYROLL_COST_CENTER):
+            return PAYROLL_COST_CENTER
 
         # Build a combined text field to search for payroll hints
         combined_text = ' '.join([
@@ -218,8 +231,8 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             normalize_text_helper(row.get('Nome do fornecedor/cliente', ''))
         ])
 
-        if any(keyword in combined_text for keyword in payroll_keywords):
-            return 'Wages Expenses'
+        if any(keyword in combined_text for keyword in PAYROLL_KEYWORDS):
+            return PAYROLL_COST_CENTER
 
         return current_cc
 
