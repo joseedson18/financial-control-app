@@ -72,7 +72,11 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         # If strict parsing failed for this encoding, try with on_bad_lines='skip' as fallback
         for sep in separators:
             try:
-                print(f"⚠️ Strict parsing failed. Retrying with on_bad_lines='skip', encoding={encoding}, sep='{sep}'")
+                logger.warning(
+                    "Strict parsing failed. Retrying with on_bad_lines='skip', encoding=%s, sep='%s'",
+                    encoding,
+                    sep,
+                )
                 df = pd.read_csv(io.BytesIO(file_content), encoding=encoding, sep=sep, on_bad_lines='skip', engine='python')
                 if 'Data de competência' in df.columns:
                     break
@@ -116,11 +120,11 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             for alias in aliases:
                 if alias in df.columns:
                     df.rename(columns={alias: target_col}, inplace=True)
-                    print(f"✅ Mapped column '{alias}' -> '{target_col}'")
+                    logger.info("Mapped column '%s' -> '%s'", alias, target_col)
                     break
-    
+
     # Print available columns for debugging
-    print(f"📋 Available columns after normalization: {list(df.columns)}")
+    logger.info("Available columns after normalization: %s", list(df.columns))
 
     # Basic validation
     required_cols = ['Data de competência', 'Valor (R$)', 'Centro de Custo 1', 'Nome do fornecedor/cliente']
