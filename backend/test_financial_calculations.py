@@ -22,7 +22,7 @@ import os
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from logic import calculate_pnl, get_dashboard_data
+from logic import calculate_pnl, get_dashboard_data, get_initial_mappings, process_upload
 from models import MappingItem, PnLResponse, DashboardData
 
 
@@ -67,6 +67,13 @@ def create_test_dataframe(rows_data: list) -> pd.DataFrame:
         'Categoria': [r.get('category', 'RECEITAS') for r in rows_data],
     }
     return pd.DataFrame(df_data)
+
+
+def _find_row_by_description(pnl: PnLResponse, description: str):
+    for row in pnl.rows:
+        if row.description == description:
+            return row
+    raise AssertionError(f"Row with description '{description}' not found")
 
 
 class TestRevenueAggregation:
@@ -316,10 +323,31 @@ class TestMappingLogic:
         ]
         
         pnl = calculate_pnl(df, mappings)
-        
+
         # Check COGS line (Line 43 accumulates to Line 6/103)
         # Line 6 is COGS.
         cogs_row = next((r for r in pnl.rows if r.line_number == 6), None)
         assert cogs_row is not None
         assert cogs_row.values['2024-01'] == -100.0
+
+
+def test_payroll_category_reroutes_to_wages_cost_center(tmp_path):
+    """Payroll-like descriptions/categories without a cost center should map to Wages."""
+
+    csv_content = """Data de competência,Valor (R$),Centro de Custo 1,Nome do fornecedor/cliente,Categoria 1,Descrição
+01/01/2024,-1000.00,,Fulano da Silva,Folha de Pagamento,Pagamento salário
+"""
+
+    csv_file = tmp_path / "payroll.csv"
+    csv_file.write_text(csv_content, encoding="utf-8")
+
+    df = process_upload(csv_file.read_bytes())
+
+    assert df.loc[0, 'Centro de Custo 1'] == "Wages Expenses", "Payroll entries should be forced to Wages Expenses"
+
+    pnl = calculate_pnl(df, get_initial_mappings())
+    wages_row = _find_row_by_description(pnl, "Salários (Wages)")
+    month = pnl.headers[0]
+
+    assert wages_row.values[month] == -1000.0, "Mapped payroll value should flow into P&L line 62 and dashboard"
 

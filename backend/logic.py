@@ -190,7 +190,39 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         df['Centro de Custo 1'] = df['Centro de Custo 1'].astype(str).str.strip()
     if 'Nome do fornecedor/cliente' in df.columns:
         df['Nome do fornecedor/cliente'] = df['Nome do fornecedor/cliente'].astype(str).str.strip()
-    
+    if 'Categoria 1' in df.columns:
+        df['Categoria 1'] = df['Categoria 1'].astype(str).str.strip()
+
+    # Ensure payroll transactions are routed to Wages Expenses (P&L line 62)
+    payroll_keywords = [
+        'folha de pagamento', 'folha pagamento', 'folha',
+        'pro labore', 'pro-labore', 'pró labore', 'pró-labore',
+        'salario', 'salário', 'holerite',
+        'prestador de servico pj', 'payroll'
+    ]
+
+    def enforce_wages_cost_center(row):
+        current_cc = str(row.get('Centro de Custo 1', '') or '').strip()
+        cc_norm = normalize_text_helper(current_cc)
+
+        # Already correctly tagged
+        if cc_norm == 'wages expenses':
+            return 'Wages Expenses'
+
+        # Build a combined text field to search for payroll hints
+        combined_text = ' '.join([
+            normalize_text_helper(row.get('Categoria 1', '')),
+            normalize_text_helper(row.get('Descrição', '')),
+            normalize_text_helper(row.get('Nome do fornecedor/cliente', ''))
+        ])
+
+        if any(keyword in combined_text for keyword in payroll_keywords):
+            return 'Wages Expenses'
+
+        return current_cc
+
+    df['Centro de Custo 1'] = df.apply(enforce_wages_cost_center, axis=1)
+
     return df
 
 def get_initial_mappings() -> List[MappingItem]:
