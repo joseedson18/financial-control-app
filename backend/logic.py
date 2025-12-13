@@ -518,7 +518,11 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         line_values[110][m] = -other_expenses_abs
         line_values[111][m] = net_result
 
-        logger.info(f"Month {m}: Rev={total_revenue:.2f}, EBITDA={ebitda:.2f}")
+        logger.info(
+            f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, "
+            f"Gross Profit={gross_profit:.2f}, Net Result={net_result:.2f}"
+        )
+
         # DEBUG: Breakdown of expenses if EBITDA is negative or expenses spike
         if ebitda < 0 or sga_total + other_expenses_abs > 50000:
             logger.info(f"--- Expense Breakdown for {m} ---")
@@ -533,11 +537,6 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
                 logger.info(f"  Line {ln}: {v:.2f}")
             logger.info(f"  Total Calculated Expenses (from lines): {sum(breakdown.values()):.2f}")
             logger.info("-----------------------------")
-
-        logger.info(
-            f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, "
-            f"Gross Profit={gross_profit:.2f}, Net Result={net_result:.2f}"
-        )
 
     # APPLY OVERRIDES (Restricted to Final Lines)
     FINAL_LINES = {100, 106, 111} # Revenue, EBITDA, Net Result
