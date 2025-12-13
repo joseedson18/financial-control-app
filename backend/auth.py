@@ -22,23 +22,26 @@ __all__ = [
 
 # Admin Users (Hardcoded as requested)
 # Using simple SHA256 hashing for passwords
-import hashlib
+from argon2 import PasswordHasher
+
+_password_hasher = PasswordHasher()
 
 def hash_password(password: str) -> str:
-    """Hash password using SHA256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash password using Argon2 (memory hard, salt included)"""
+    return _password_hasher.hash(password)
 
+# Precomputed Argon2 hashes for: "fxdxudu18!", "123456!", "654321!"
 USERS_DB = {
     "josemercadogc18@gmail.com": {
-        "password_hash": hash_password("fxdxudu18!"),
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$B5enxJ+VuM4+AbCyo+Tx0w$BU5XR3VWIUUmwWbji1PoRCRn7XRvnNO62Jz9S8P5ZeQ",  # fxdxudu18!
         "name": "Jose Mercado"
     },
     "matheuscastrocorrea@gmail.com": {
-        "password_hash": "069f57dae98079b842a956e41d081e76487591a2ad65fa7a450717c1ab19767f", # Hash of 123456!
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$Updi0pwxbzu026Jm3YAnbA$q/WhS5d2YAqya6QVkdxnpMemG6IcyMCaqtEItiBNHzM",  # 123456!
         "name": "Matheus Castro"
     },
     "jc@juicyscore.ai": {
-        "password_hash": "06b8d0bd9f7f33fa0e46ad56186ed2fd9425e9c5aa808ea2b4be0293e6edb953", # Hash of 654321!
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$FE7QvKuHYvPz4aHgY5DDlg$J4tQyPsOfHTEJF3R60hjhJ6nyVbqv8NO6dsl4M/Nbpo",  # 654321!
         "name": "JC"
     }
 }
@@ -72,7 +75,16 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 def verify_password(plain_password, hashed_password):
-    return hash_password(plain_password) == hashed_password
+    """
+    Verifies a password against an Argon2 hash.
+    """
+    try:
+        return _password_hasher.verify(hashed_password, plain_password)
+    except Exception:
+        return False
+    """
+    Returns an Argon2 hash for the given password.
+    """
 
 def get_password_hash(password):
     return hash_password(password)
