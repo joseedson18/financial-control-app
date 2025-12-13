@@ -23,6 +23,7 @@ def normalize_text_helper(s: Any) -> str:
 
 
 PAYROLL_COST_CENTER = "Wages Expenses"
+PAYROLL_COST_CENTER_NORMALIZED = normalize_text_helper(PAYROLL_COST_CENTER)
 PAYROLL_KEYWORDS = [
     normalize_text_helper(k)
     for k in [
@@ -221,7 +222,7 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         cc_norm = normalize_text_helper(current_cc)
 
         # Already correctly tagged
-        if cc_norm == normalize_text_helper(PAYROLL_COST_CENTER):
+        if cc_norm == PAYROLL_COST_CENTER_NORMALIZED:
             return PAYROLL_COST_CENTER
 
         # Build a combined text field to search for payroll hints
