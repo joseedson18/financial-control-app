@@ -4,6 +4,7 @@ from sklearn.linear_model import LinearRegression
 import io
 import logging
 from typing import List, Dict, Any
+from collections import defaultdict
 import unicodedata
 from models import MappingItem, PnLItem, PnLResponse, DashboardData
 
@@ -319,8 +320,6 @@ def get_initial_mappings() -> List[MappingItem]:
     return mappings
 
 def prepare_mappings(mappings: List[MappingItem]):
-    from collections import defaultdict
-    
     # Use defaultdict(list) for specific mappings to handle multiple patterns for same CC
     specific_by_cc = defaultdict(list)
     generic_by_cc = {}
@@ -517,8 +516,26 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         line_values[109][m] = -tech_support_abs
         line_values[110][m] = -other_expenses_abs
         line_values[111][m] = net_result
-        
-        logger.info(f"Month {m}: Rev={total_revenue:.2f}, EBITDA={ebitda:.2f}")
+
+        # DEBUG: Breakdown of expenses if EBITDA is negative or expenses spike
+        if ebitda < 0 or sga_total + other_expenses_abs > 50000:
+            logger.info(f"--- Expense Breakdown for {m} ---")
+            breakdown = defaultdict(float)
+            for line_num in range(43, 100):  # Expense lines
+                val = line_values[line_num].get(m, 0.0)
+                if val != 0:
+                    breakdown[line_num] += val
+
+            sorted_breakdown = sorted(breakdown.items(), key=lambda x: x[1])
+            for ln, v in sorted_breakdown:
+                logger.info(f"  Line {ln}: {v:.2f}")
+            logger.info(f"  Total Calculated Expenses (from lines): {sum(breakdown.values()):.2f}")
+            logger.info("-----------------------------")
+
+        logger.info(
+            f"Month {m}: Revenue={total_revenue:.2f}, EBITDA={ebitda:.2f}, "
+            f"Gross Profit={gross_profit:.2f}, Net Result={net_result:.2f}"
+        )
 
     # APPLY OVERRIDES (Restricted to Final Lines)
     FINAL_LINES = {100, 106, 111} # Revenue, EBITDA, Net Result
