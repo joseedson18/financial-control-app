@@ -1,11 +1,9 @@
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from datetime import datetime
 import io
 import logging
 from typing import List, Dict, Any
-from collections import defaultdict
 import unicodedata
 from models import MappingItem, PnLItem, PnLResponse, DashboardData
 
