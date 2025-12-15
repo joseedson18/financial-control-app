@@ -17,16 +17,20 @@ jobs:
         with:
           python-version: "3.10"
           auto-activate-base: false
-          activate-environment: test-env
-          environment-file: null
           channels: conda-forge,defaults
+          use-mamba: false
 
-      - name: Install dependencies
+      - name: Install dependencies (using conda)
         shell: bash -l {0}
         run: |
-          conda install --yes python=3.10 pip
+          conda create -n test-env --yes python=3.10 pip
+          source /usr/share/miniconda/etc/profile.d/conda.sh
+          conda activate test-env
           pip install -r backend/requirements.txt
 
       - name: Run checks
         shell: bash -l {0}
-        run: python -m compileall backend
+        run: |
+          source /usr/share/miniconda/etc/profile.d/conda.sh
+          conda activate test-env
+          python -m compileall backend
