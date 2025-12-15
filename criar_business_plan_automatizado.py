@@ -23,16 +23,42 @@ print("=" * 80)
 # ============================================================================
 print("\n1. Carregando dados originais...")
 
+def carregar_csv_robusto(path: str) -> pd.DataFrame:
+    """Tenta carregar um CSV com diferentes codificações e separadores."""
+    encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+    separators = [',', ';', '\t']
+    last_error = None
+
+    for encoding in encodings:
+        for sep in separators:
+            try:
+                df = pd.read_csv(
+                    path,
+                    sep=sep,
+                    encoding=encoding,
+                    decimal=',',
+                    thousands='.',
+                )
+                return df
+            except Exception as e:  # pragma: no cover - robustness path
+                last_error = e
+                continue
+
+    raise ValueError(
+        f"Não foi possível carregar o arquivo {path}. Último erro: {last_error}"
+    )
+
+
 # Carregar P&L original
-pl_original = pd.read_csv('/home/ubuntu/upload/00_Business_Plan_Umatch.xlsx-P&L.csv')
+pl_original = carregar_csv_robusto('/home/ubuntu/upload/00_Business_Plan_Umatch.xlsx-P&L.csv')
 print(f"   ✓ P&L: {pl_original.shape}")
 
 # Carregar Assumptions
-assumptions = pd.read_csv('/home/ubuntu/upload/00_Business_Plan_Umatch.xlsx-Assumptions.csv')
+assumptions = carregar_csv_robusto('/home/ubuntu/upload/00_Business_Plan_Umatch.xlsx-Assumptions.csv')
 print(f"   ✓ Assumptions: {assumptions.shape}")
 
-# Carregar extrato Conta Azul
-extrato_raw = pd.read_csv('/home/ubuntu/upload/Extratodemovimentações-2025-ExtratoFinanceiro.csv')
+# Carregar extrato Conta Azul com fallback de encoding
+extrato_raw = carregar_csv_robusto('/home/ubuntu/upload/Extratodemovimentações-2025-ExtratoFinanceiro.csv')
 print(f"   ✓ Extrato Conta Azul: {extrato_raw.shape}")
 
 # ============================================================================
@@ -42,27 +68,31 @@ print("\n2. Processando extrato Conta Azul...")
 
 # Converter data de competência
 extrato_raw['Data de competência'] = pd.to_datetime(
-    extrato_raw['Data de competência'], 
-    format='%d/%m/%Y', 
-    errors='coerce'
+    extrato_raw['Data de competência'].astype(str).str.strip(),
+    format='%d/%m/%Y',
+    errors='coerce',
+    dayfirst=True,
 )
 
-# Converter valores para numérico
-def converter_valor_br(valor_str):
-    """Converte valor brasileiro (R$ 1.234,56) para float"""
-    if pd.isna(valor_str) or valor_str == '':
-        return 0.0
-    valor_str = str(valor_str).replace('R$', '').replace('.', '').replace(',', '.').strip()
-    try:
-        return float(valor_str)
-    except:
-        return 0.0
+# Converter valores para numérico utilizando os parâmetros do pandas
+extrato_raw['Valor_Num'] = pd.to_numeric(
+    extrato_raw['Valor (R$)']
+    .astype(str)
+    .str.replace('R$', '', regex=False)
+    .str.replace(' ', '', regex=False)
+    .str.replace('.', '', regex=False)
+    .str.replace(',', '.', regex=False),
+    errors='coerce',
+).fillna(0.0)
 
-extrato_raw['Valor_Num'] = extrato_raw['Valor (R$)'].apply(converter_valor_br)
 extrato_raw['Mes_Competencia'] = extrato_raw['Data de competência'].dt.to_period('M')
+data_inicio = extrato_raw['Mes_Competencia'].dropna().min()
+if pd.isna(data_inicio):
+    data_inicio = pd.Period(datetime(2024, 5, 1), freq='M')
 
 print(f"   ✓ Período: {extrato_raw['Data de competência'].min()} a {extrato_raw['Data de competência'].max()}")
 print(f"   ✓ Total de movimentações: {len(extrato_raw)}")
+print(f"   ✓ Mês inicial dinâmico: {data_inicio}")
 
 # ============================================================================
 # 3. CRIAR WORKBOOK EXCEL
