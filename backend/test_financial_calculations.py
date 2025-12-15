@@ -235,10 +235,30 @@ class TestDashboardKPIs:
         mappings = [
             create_mapping("GOOGLE", "25", "GOOGLE PLAY", "Receita"),
         ]
-        
+
         dashboard = get_dashboard_data(df, mappings)
-        
+
         assert dashboard is not None
+
+    def test_dashboard_net_result_respects_overrides(self):
+        """Net result KPI should reflect overridden P&L values."""
+        df = create_test_dataframe([
+            {'supplier': 'GOOGLE CLOUD', 'value': 1000.0, 'month': '2024-01', 'cost_center': 'GOOGLE PLAY'},
+            {'supplier': 'APPLE DISTRIBUTION', 'value': 500.0, 'month': '2024-01', 'cost_center': 'APP STORE'},
+        ])
+
+        mappings = [
+            create_mapping("GOOGLE", "25", "GOOGLE PLAY", "Receita"),
+            create_mapping("APPLE", "33", "APP STORE", "Receita"),
+        ]
+
+        overrides = {"111": {"2024-01": 1234.56}}
+
+        dashboard = get_dashboard_data(df, mappings, overrides)
+
+        assert dashboard is not None
+        assert dashboard.kpis["net_result"] == pytest.approx(1234.56)
+        assert dashboard.kpis["net_result"] != pytest.approx(dashboard.kpis["ebitda"])
 
 
 class TestEdgeCases:
