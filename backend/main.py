@@ -31,12 +31,26 @@ origins = [
 
 # Add production frontend URL from env
 frontend_url = os.getenv("FRONTEND_URL")
-if frontend_url:
-    origins.append(frontend_url)
+render_url = os.getenv("RENDER_EXTERNAL_URL")
+render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+
+for candidate in [frontend_url, render_url]:
+    if candidate:
+        origins.append(candidate)
+
+# Render sometimes exposes only the hostname; include both schemes
+if render_hostname:
+    origins.extend([
+        f"https://{render_hostname}",
+        f"http://{render_hostname}"
+    ])
+
+# Remove duplicates while preserving order
+origins = list(dict.fromkeys(filter(None, origins)))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Keep * for now to avoid issues if env var is missing or mismatch
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -155,7 +169,7 @@ async def startup_event():
 
 
 @app.post("/pnl/override")
-def update_pnl_override(data: dict):
+def update_pnl_override(data: dict, current_user: dict = Depends(get_current_user)):
     """Update a specific cell in the P&L"""
     global current_overrides
     

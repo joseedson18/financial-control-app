@@ -77,7 +77,9 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
             'Natureza', 'natureza'
         ],
         'Centro de Custo 1': ['Centro de Custo 1', 'Centro de Custo', 'CentroCusto', 'centro_custo', 'Centro de custo 1'],
-        'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente']
+        'Nome do fornecedor/cliente': ['Nome do fornecedor/cliente', 'Fornecedor/Cliente', 'Nome Fornecedor', 'fornecedor_cliente', 'Fornecedor', 'Cliente'],
+        # Category aliases help when uploads contain Plano de Contas/Category labels
+        'Categoria 1': ['Categoria 1', 'Categoria', 'Categoria Principal', 'Plano de contas', 'Plano de Contas']
     }
     
     # Try to find and rename columns
@@ -104,15 +106,30 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
     
     # Robust date parsing
     def parse_dates(date_str):
-        if pd.isna(date_str): return pd.NaT
+        if pd.isna(date_str):
+            return pd.NaT
+
+        # Excel serials or numeric timestamps
+        if isinstance(date_str, (int, float)):
+            try:
+                return pd.to_datetime('1899-12-30') + pd.to_timedelta(float(date_str), unit='D')
+            except Exception:
+                pass
+
         date_str = str(date_str).strip()
-        formats = ['%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y']
+        # First try common strict formats
+        formats = ['%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y', '%Y/%m/%d']
         for fmt in formats:
             try:
                 return pd.to_datetime(date_str, format=fmt)
-            except:
+            except Exception:
                 continue
-        return pd.NaT
+
+        # Fallback to pandas parser with multiple heuristics
+        parsed = pd.to_datetime(date_str, errors='coerce', dayfirst=True, infer_datetime_format=True)
+        if pd.isna(parsed):
+            parsed = pd.to_datetime(date_str, errors='coerce', dayfirst=False, infer_datetime_format=True)
+        return parsed
 
     df['Data de competência'] = df['Data de competência'].apply(parse_dates)
     
@@ -198,16 +215,26 @@ def process_upload(file_content: bytes) -> pd.DataFrame:
         'folha de pagamento', 'folha pagamento', 'folha',
         'pro labore', 'pro-labore', 'pró labore', 'pró-labore',
         'salario', 'salário', 'holerite',
-        'prestador de servico pj', 'payroll'
+        'prestador de servico pj', 'payroll', 'rh', 'recursos humanos'
     ]
+
+    payroll_cost_center_aliases = {
+        'folha de pagamento': 'Wages Expenses',
+        'folha': 'Wages Expenses',
+        'recursos humanos': 'Wages Expenses',
+        'rh': 'Wages Expenses',
+        'wages expenses': 'Wages Expenses',
+        'salarios': 'Wages Expenses',
+        'salários': 'Wages Expenses'
+    }
 
     def enforce_wages_cost_center(row):
         current_cc = str(row.get('Centro de Custo 1', '') or '').strip()
         cc_norm = normalize_text_helper(current_cc)
 
-        # Already correctly tagged
-        if cc_norm == 'wages expenses':
-            return 'Wages Expenses'
+        # Already correctly tagged or matches a known alias
+        if cc_norm in payroll_cost_center_aliases:
+            return payroll_cost_center_aliases[cc_norm]
 
         # Build a combined text field to search for payroll hints
         combined_text = ' '.join([
@@ -526,6 +553,16 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
                         line_values[line_num][m] = val
             except:
                 continue
+
+    # Ensure Net Result mirrors EBITDA when the user adjusts EBITDA but leaves Net Result untouched
+    ebitda_overrides = overrides.get("106", {}) if overrides else {}
+    net_result_overrides = overrides.get("111", {}) if overrides else {}
+    for m in month_strs:
+        if m in net_result_overrides:
+            # User explicitly set Net Result for this month
+            continue
+        if m in ebitda_overrides:
+            line_values[111][m] = line_values[106][m]
 
     # Build P&L Rows
     rows = []
