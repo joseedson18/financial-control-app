@@ -19,18 +19,12 @@ jobs:
           auto-activate-base: false
           channels: conda-forge,defaults
           use-mamba: false
-
-      - name: Install dependencies (using conda)
-        shell: bash -l {0}
-        run: |
-          conda create -n test-env --yes python=3.10 pip
-          source /usr/share/miniconda/etc/profile.d/conda.sh
-          conda activate test-env
-          pip install -r backend/requirements.txt
+          environment-file: environment.yml
+          activate-environment: financial-control-env
 
       - name: Run checks
         shell: bash -l {0}
         run: |
           source /usr/share/miniconda/etc/profile.d/conda.sh
-          conda activate test-env
+          conda activate financial-control-env
           python -m compileall backend

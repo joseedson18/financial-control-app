@@ -1,0 +1,21 @@
+name: financial-control-env
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - fastapi
+    - argon2-cffi==25.1.0
+    - uvicorn
+    - pandas
+    - openpyxl
+    - python-multipart
+    - pydantic
+    - openai
+    - python-jose[cryptography]
+    - passlib[bcrypt]
+    - python-dotenv
+    - scikit-learn
+    - flake8
+    - pytest

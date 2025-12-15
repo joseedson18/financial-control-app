@@ -25,3 +25,14 @@ def test_login_endpoint_accepts_known_user():
     assert "access_token" in payload and payload.get("token_type") == "bearer"
 
 
+def test_login_endpoint_accepts_matheus_user():
+    client = TestClient(app)
+    response = client.post(
+        "/api/login",
+        data={"username": "matheuscastrocorrea@gmail.com", "password": "123456!"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert "access_token" in payload and payload.get("token_type") == "bearer"
+
+
