@@ -30,14 +30,14 @@ def hash_password(password: str) -> str:
     """Hash password using Argon2 (memory hard, salt included)"""
     return _password_hasher.hash(password)
 
-# Precomputed Argon2 hashes for: "fxdxudu18!", "123456!", "654321!"
+# Precomputed Argon2 hashes for: "fxdxudu18!", "123456", "654321!"
 USERS_DB = {
     "josemercadogc18@gmail.com": {
         "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$3uWGfZ/4lhI0IavAT+bI3w$tRHRSxRHi6UtAMfuUk05RWM5TnM5cUevADr+oL7dnK4",  # fxdxudu18!
         "name": "Jose Mercado"
     },
     "matheuscastrocorrea@gmail.com": {
-        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$FXtRzzv1fIKtVpkLVLAt2Q$dqOmysvzueX9QjL3+UPtUYkT9SsCvav1xm9VWSCKJv8",  # 123456!
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$75Tzlvj9i9ypd73J9yPu+g$dsnh1u7Sm34ye85rf+bEUVrhulMSKnWLKPJJ2RuaFgU",  # 123456
         "name": "Matheus Castro"
     },
     "jc@juicyscore.ai": {

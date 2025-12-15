@@ -10,7 +10,7 @@ from backend.main import app  # noqa: E402
 
 def test_password_hashes_accept_known_passwords():
     assert verify_password("fxdxudu18!", USERS_DB["josemercadogc18@gmail.com"]["password_hash"])
-    assert verify_password("123456!", USERS_DB["matheuscastrocorrea@gmail.com"]["password_hash"])
+    assert verify_password("123456", USERS_DB["matheuscastrocorrea@gmail.com"]["password_hash"])
     assert verify_password("654321!", USERS_DB["jc@juicyscore.ai"]["password_hash"])
 
 
@@ -29,7 +29,7 @@ def test_login_endpoint_accepts_matheus_user():
     client = TestClient(app)
     response = client.post(
         "/api/login",
-        data={"username": "matheuscastrocorrea@gmail.com", "password": "123456!"},
+        data={"username": "matheuscastrocorrea@gmail.com", "password": "123456"},
     )
     assert response.status_code == 200, response.text
     payload = response.json()
