@@ -36,3 +36,21 @@ def test_login_endpoint_accepts_matheus_user():
     assert "access_token" in payload and payload.get("token_type") == "bearer"
 
 
+def test_login_endpoint_trims_and_lowercases_email():
+    """Avoid regressions where whitespace/casing prevent authentication."""
+    client = TestClient(app)
+    # Leading/trailing spaces
+    response_spaces = client.post(
+        "/api/login",
+        data={"username": "  MatheusCastroCorrea@gmail.com  ", "password": "123456"},
+    )
+    assert response_spaces.status_code == 200, response_spaces.text
+
+    # Mixed casing
+    response_case = client.post(
+        "/api/login",
+        data={"username": "MATHEUSCASTROCORREA@GMAIL.COM", "password": "123456"},
+    )
+    assert response_case.status_code == 200, response_case.text
+
+
