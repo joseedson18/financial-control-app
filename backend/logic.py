@@ -633,7 +633,9 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
         total_google += get_val_by_line(21, m)
         total_apple += get_val_by_line(22, m)
     
-    net_result = total_ebitda  # For now
+    total_net_result = 0.0
+    for m in pnl.headers:
+        total_net_result += get_val_by_line(16, m)      # (=) RESULTADO LÍQUIDO
     
     # Avoid division by zero
     ebitda_margin = (total_ebitda / total_revenue) if total_revenue > 0 else 0.0
@@ -642,7 +644,7 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
     # KPIs
     kpis = {
         "total_revenue": total_revenue,
-        "net_result": net_result,
+        "net_result": total_net_result,
         "ebitda": total_ebitda,
         "ebitda_margin": ebitda_margin,
         "gross_margin": gross_margin,
