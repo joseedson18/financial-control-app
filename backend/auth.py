@@ -33,15 +33,15 @@ def hash_password(password: str) -> str:
 # Precomputed Argon2 hashes for: "fxdxudu18!", "123456!", "654321!"
 USERS_DB = {
     "josemercadogc18@gmail.com": {
-        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$B5enxJ+VuM4+AbCyo+Tx0w$BU5XR3VWIUUmwWbji1PoRCRn7XRvnNO62Jz9S8P5ZeQ",  # fxdxudu18!
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$3uWGfZ/4lhI0IavAT+bI3w$tRHRSxRHi6UtAMfuUk05RWM5TnM5cUevADr+oL7dnK4",  # fxdxudu18!
         "name": "Jose Mercado"
     },
     "matheuscastrocorrea@gmail.com": {
-        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$Updi0pwxbzu026Jm3YAnbA$q/WhS5d2YAqya6QVkdxnpMemG6IcyMCaqtEItiBNHzM",  # 123456!
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$FXtRzzv1fIKtVpkLVLAt2Q$dqOmysvzueX9QjL3+UPtUYkT9SsCvav1xm9VWSCKJv8",  # 123456!
         "name": "Matheus Castro"
     },
     "jc@juicyscore.ai": {
-        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$FE7QvKuHYvPz4aHgY5DDlg$J4tQyPsOfHTEJF3R60hjhJ6nyVbqv8NO6dsl4M/Nbpo",  # 654321!
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$y3i+qbk+M77A+aomLS9h5g$hegYbeK03ffU9He00wXpk44cug1tyCkaGcepXKQ9Nvw",  # 654321!
         "name": "JC"
     }
 }

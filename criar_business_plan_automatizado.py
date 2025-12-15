@@ -13,6 +13,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.worksheet.datavalidation import DataValidation
 import json
+import unicodedata
 
 print("=" * 80)
 print("CRIAÇÃO DO BUSINESS PLAN UMATCH AUTOMATIZADO")
@@ -47,6 +48,15 @@ def carregar_csv_robusto(path: str) -> pd.DataFrame:
     raise ValueError(
         f"Não foi possível carregar o arquivo {path}. Último erro: {last_error}"
     )
+
+
+def normalizar(texto: str) -> str:
+    """Normaliza textos para comparação (casefold + remoção de acentos)."""
+    if pd.isna(texto):
+        return ""
+    texto = str(texto).strip().lower()
+    texto = unicodedata.normalize("NFKD", texto)
+    return "".join(ch for ch in texto if not unicodedata.combining(ch))
 
 
 # Carregar P&L original
@@ -151,7 +161,7 @@ for col in ['A', 'B', 'C', 'D', 'E']:
 # Parâmetros editáveis
 parametros = [
     ["Receita", "Taxa Apple/Google", "0.85", "%", "Receita líquida após desconto de 15%"],
-    ["Receita", "Receita Bruta = Líquida / 0.85", "=C4/C4", "Fórmula", "Cálculo automático"],
+    ["Receita", "Receita Bruta = Líquida / 0.85", "=1/$C$4", "Fórmula", "Cálculo automático"],
     ["", "", "", "", ""],
     ["Custos", "COGS - AWS", "", "R$", "Custo AWS (editável)"],
     ["Custos", "COGS - Cloudflare", "", "R$", "Custo Cloudflare (editável)"],
@@ -234,28 +244,72 @@ mapeamentos = [
     # SG&A
     ["SG&A", "Marketing & Growth Expenses", "MGA MARKETING LTDA", "56", "Despesa", "Sim", "Marketing"],
     ["SG&A", "Marketing & Growth Expenses", "Diversos", "56", "Despesa", "Sim", "Marketing - Diversos"],
-    ["SG&A", "Wages Expenses", "Diversos", "64", "Despesa", "Sim", "Salários e Pró-labore"],
+    ["SG&A", "Wages Expenses", "Diversos", "62", "Despesa", "Sim", "Salários e Pró-labore"],
     ["SG&A", "Tech Support & Services", "Adobe", "68", "Despesa", "Sim", "Adobe Creative Cloud"],
     ["SG&A", "Tech Support & Services", "Canva", "68", "Despesa", "Sim", "Canva"],
     ["SG&A", "Tech Support & Services", "ClickSign", "68", "Despesa", "Sim", "ClickSign"],
     ["SG&A", "Tech Support & Services", "COMPANYHERO SAO PAULO BRA", "68", "Despesa", "Sim", "CompanyHero"],
-    ["SG&A", "Tech Support & Services", "Diversos", "65", "Despesa", "Sim", "Tech Support - Diversos"],
+    ["SG&A", "Tech Support & Services", "Diversos", "68", "Despesa", "Sim", "Tech Support - Diversos"],
     ["", "", "", "", "", "", ""],
-    
+
     # OUTRAS DESPESAS
     ["Outras Despesas", "Legal & Accounting Expenses", "BHUB.AI", "90", "Despesa", "Sim", "BPO Financeiro"],
     ["Outras Despesas", "Legal & Accounting Expenses", "WOLFF E SCRIPES ADVOGADOS", "90", "Despesa", "Sim", "Honorários Advocatícios"],
+    ["Outras Despesas", "Advisory & Prof. Services Expenses", "BIRD PRESTACAO DE SERVICOS DE PSICOLOGIA E COACHING LTDA-EPP", "90", "Despesa", "Sim", "Serviços Profissionais"],
     ["Outras Despesas", "Office Expenses", "GO OFFICES LATAM S/A", "90", "Despesa", "Sim", "Aluguel"],
     ["Outras Despesas", "Office Expenses", "CO-SERVICES DO BRASIL  SERVICOS COMBINADOS DE APOIO A EDIFICIOS LTDA", "90", "Despesa", "Sim", "Serviços de Escritório"],
     ["Outras Despesas", "Travel", "American Airlines", "90", "Despesa", "Sim", "Viagens"],
     ["Outras Despesas", "Other Taxes", "IMPOSTOS/TRIBUTOS", "90", "Despesa", "Sim", "Impostos e Tributos"],
+    ["Outras Despesas", "Other Taxes", "BANCO INTER", "90", "Despesa", "Sim", "Tarifas / IOF"],
     ["Outras Despesas", "Payroll Tax - Brazil", "IMPOSTOS/TRIBUTOS", "90", "Despesa", "Sim", "Impostos sobre Folha"],
+    ["Outras Despesas", "Identificar", "Diversos", "90", "Despesa", "Sim", "A classificar"],
     ["", "", "", "", "", "", ""],
     
     # RENDIMENTOS
     ["Rendimentos", "Rendimentos de Aplicações", "CONTA SIMPLES", "38", "Receita", "Sim", "Rendimentos CDI - Conta Simples"],
     ["Rendimentos", "Rendimentos de Aplicações", "BANCO INTER", "38", "Receita", "Sim", "Rendimentos - Banco Inter"],
 ]
+
+def _build_mapeamento_cache():
+    especificos = {}
+    genericos = {}
+
+    for (grupo, cc_map, fornecedor_map, linha_pl, *_rest) in mapeamentos:
+        if not grupo and not cc_map:
+            continue
+
+        entrada = {
+            "grupo": grupo or cc_map,
+            "linha": int(str(linha_pl)) if str(linha_pl).strip() else None,
+        }
+
+        cc_map_norm = normalizar(cc_map)
+        fornecedor_map_norm = normalizar(fornecedor_map)
+
+        if not fornecedor_map_norm or fornecedor_map_norm == "diversos":
+            genericos[cc_map_norm] = entrada
+        else:
+            especificos.setdefault(cc_map_norm, []).append((fornecedor_map_norm, entrada))
+
+    return especificos, genericos
+
+
+_MAPEAMENTO_ESPECIFICOS, _MAPEAMENTO_GENERICOS = _build_mapeamento_cache()
+
+
+def encontrar_mapeamento(cc: str, fornecedor: str):
+    """Retorna (grupo, linha) a partir de centro de custo e fornecedor."""
+    cc_norm = normalizar(cc)
+    fornecedor_norm = normalizar(fornecedor)
+
+    for fornecedor_map_norm, entrada in _MAPEAMENTO_ESPECIFICOS.get(cc_norm, []):
+        if fornecedor_map_norm in fornecedor_norm:
+            return entrada
+
+    if cc_norm in _MAPEAMENTO_GENERICOS:
+        return _MAPEAMENTO_GENERICOS[cc_norm]
+
+    return {"grupo": "Identificar", "linha": 90}
 
 row = 4
 for mapa in mapeamentos:
@@ -322,6 +376,13 @@ for idx, registro in extrato_raw.iterrows():
     ws_extrato.cell(row=row, column=6, value=registro['Tipo da operação'])
     ws_extrato.cell(row=row, column=7, value=registro['Categoria 1'])
     ws_extrato.cell(row=row, column=8, value=str(registro['Mes_Competencia']))
+
+    destino = encontrar_mapeamento(
+        registro.get('Centro de Custo 1', ''),
+        registro.get('Nome do fornecedor/cliente', ''),
+    )
+    ws_extrato.cell(row=row, column=9, value=destino.get('grupo'))
+    ws_extrato.cell(row=row, column=10, value=destino.get('linha'))
     
     # Aplicar bordas
     for col in range(1, 11):
