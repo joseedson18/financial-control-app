@@ -1,0 +1,32 @@
+name: Python (Conda)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.10"
+          auto-activate-base: false
+          activate-environment: test-env
+          environment-file: null
+          channels: conda-forge,defaults
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install --yes python=3.10 pip
+          pip install -r backend/requirements.txt
+
+      - name: Run checks
+        shell: bash -l {0}
+        run: python -m compileall backend
