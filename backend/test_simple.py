@@ -5,7 +5,7 @@ Run with: pytest backend/test_simple.py -v
 
 def test_net_result_exists():
     """Test that Net Result line exists in P&L"""
-    from logic import calculate_pnl, get_initial_mappings
+    from backend.logic import calculate_pnl, get_initial_mappings
     import pandas as pd
     
     # Create minimal sample data with all required columns
@@ -35,7 +35,7 @@ def test_net_result_exists():
 
 def test_ebitda_equals_net_result():
     """Test that Net Result currently equals EBITDA"""
-    from logic import calculate_pnl, get_initial_mappings
+    from backend.logic import calculate_pnl, get_initial_mappings
     import pandas as pd
     
     # Create sample data with all required columns
@@ -75,7 +75,7 @@ def test_ebitda_equals_net_result():
 
 def test_validation_module():
     """Test that validation module works"""
-    from validation import validate_dashboard_pnl_consistency
+    from backend.validation import validate_dashboard_pnl_consistency
     
     # Mock data
     dashboard_data = {
