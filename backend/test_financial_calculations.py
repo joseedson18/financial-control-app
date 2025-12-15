@@ -235,10 +235,51 @@ class TestDashboardKPIs:
         mappings = [
             create_mapping("GOOGLE", "25", "GOOGLE PLAY", "Receita"),
         ]
-        
+
         dashboard = get_dashboard_data(df, mappings)
-        
+
         assert dashboard is not None
+
+    @pytest.mark.parametrize("override_line", ["16", "111"])
+    def test_dashboard_net_result_respects_overrides(self, override_line):
+        """Net result KPI should reflect overridden P&L values."""
+        df = create_test_dataframe([
+            {'supplier': 'GOOGLE CLOUD', 'value': 1000.0, 'month': '2024-01', 'cost_center': 'GOOGLE PLAY'},
+            {'supplier': 'APPLE DISTRIBUTION', 'value': 500.0, 'month': '2024-01', 'cost_center': 'APP STORE'},
+        ])
+
+        mappings = [
+            create_mapping("GOOGLE", "25", "GOOGLE PLAY", "Receita"),
+            create_mapping("APPLE", "33", "APP STORE", "Receita"),
+        ]
+
+        overrides = {override_line: {"2024-01": 1234.56}}
+
+        dashboard = get_dashboard_data(df, mappings, overrides)
+
+        assert dashboard is not None
+        assert dashboard.kpis["net_result"] == pytest.approx(1234.56)
+        assert dashboard.kpis["net_result"] != pytest.approx(dashboard.kpis["ebitda"])
+
+    def test_dashboard_net_result_tracks_ebitda_override(self):
+        """If EBITDA is overridden, Net Result should mirror it unless explicitly set."""
+        df = create_test_dataframe([
+            {'supplier': 'GOOGLE CLOUD', 'value': 1000.0, 'month': '2024-01', 'cost_center': 'GOOGLE PLAY'},
+            {'supplier': 'APPLE DISTRIBUTION', 'value': 500.0, 'month': '2024-01', 'cost_center': 'APP STORE'},
+        ])
+
+        mappings = [
+            create_mapping("GOOGLE", "25", "GOOGLE PLAY", "Receita"),
+            create_mapping("APPLE", "33", "APP STORE", "Receita"),
+        ]
+
+        overrides = {"13": {"2024-01": 2000.0}}
+
+        dashboard = get_dashboard_data(df, mappings, overrides)
+
+        assert dashboard is not None
+        assert dashboard.kpis["ebitda"] == pytest.approx(2000.0)
+        assert dashboard.kpis["net_result"] == pytest.approx(2000.0)
 
 
 class TestEdgeCases:

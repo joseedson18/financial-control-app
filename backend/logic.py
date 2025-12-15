@@ -514,18 +514,53 @@ def calculate_pnl(df: pd.DataFrame, mappings: List[MappingItem], overrides: Dict
         logger.info(f"Month {m}: Rev={total_revenue:.2f}, EBITDA={ebitda:.2f}")
 
     # APPLY OVERRIDES (Restricted to Final Lines)
-    FINAL_LINES = {100, 106, 111} # Revenue, EBITDA, Net Result
+    # Accept both the user-facing P&L line numbers (1, 13, 16) and the internal
+    # aggregate line IDs (100, 106, 111) to avoid confusion when users refer to
+    # what they see in the P&L table.
+    FINAL_LINE_MAP = {
+        1: 100,    # RECEITA OPERACIONAL BRUTA
+        13: 106,   # EBITDA
+        16: 111,   # RESULTADO LÍQUIDO
+        100: 100,
+        106: 106,
+        111: 111,
+    }
+    net_result_overridden = False
+
+    def normalize_month_key(raw_key: Any) -> str:
+        """Convert a raw override month key to the canonical YYYY-MM string."""
+        try:
+            period = pd.Period(raw_key, freq="M")
+            return str(period)
+        except Exception:
+            # Fallback: trim to YYYY-MM if possible, otherwise return the string form
+            raw_str = str(raw_key).strip()
+            if len(raw_str) >= 7 and raw_str[:7] in month_strs:
+                return raw_str[:7]
+            return raw_str
+
     if overrides:
         for line_str, months_data in overrides.items():
             try:
-                line_num = int(line_str)
-                if line_num not in FINAL_LINES:
+                requested_line = int(line_str)
+                target_line = FINAL_LINE_MAP.get(requested_line)
+                if target_line is None:
                     continue
+
+                if target_line == 111:
+                    net_result_overridden = True
+
                 for m, val in months_data.items():
-                    if m in month_strs:
-                        line_values[line_num][m] = val
-            except:
+                    month_key = normalize_month_key(m)
+                    if month_key in month_strs:
+                        line_values[target_line][month_key] = val
+            except (TypeError, ValueError):
                 continue
+
+    # Keep Net Result aligned with EBITDA unless explicitly overridden
+    if not net_result_overridden:
+        for m in month_strs:
+            line_values[111][m] = line_values[106][m]
 
     # Build P&L Rows
     rows = []
@@ -633,7 +668,9 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
         total_google += get_val_by_line(21, m)
         total_apple += get_val_by_line(22, m)
     
-    net_result = total_ebitda  # For now
+    total_net_result = 0.0
+    for m in pnl.headers:
+        total_net_result += get_val_by_line(16, m)      # (=) RESULTADO LÍQUIDO
     
     # Avoid division by zero
     ebitda_margin = (total_ebitda / total_revenue) if total_revenue > 0 else 0.0
@@ -642,7 +679,7 @@ def get_dashboard_data(df: pd.DataFrame, mappings: List[MappingItem], overrides:
     # KPIs
     kpis = {
         "total_revenue": total_revenue,
-        "net_result": net_result,
+        "net_result": total_net_result,
         "ebitda": total_ebitda,
         "ebitda_margin": ebitda_margin,
         "gross_margin": gross_margin,
