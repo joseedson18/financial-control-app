@@ -7,7 +7,7 @@ import logging
 from typing import List, Dict, Any
 from collections import defaultdict
 import unicodedata
-from models import MappingItem, PnLItem, PnLResponse, DashboardData
+from .models import MappingItem, PnLItem, PnLResponse, DashboardData
 
 # Configure logging for financial calculations
 logger = logging.getLogger(__name__)
@@ -244,54 +244,54 @@ def get_initial_mappings() -> List[MappingItem]:
 
     mappings = [
         # RECEITAS (Revenues)
-        m("Receita Google", "GOOGLE BRASIL PAGAMENTOS LTDA", 25, "Receita", "Receita Google Play"),
-        m("Receita Apple", "App Store (Apple)", 33, "Receita", "Receita App Store"),
-        m("Rendimentos de Aplicações", "CONTA SIMPLES", 38, "Receita", "Rendimentos CDI"),
-        m("Rendimentos de Aplicações", "BANCO INTER", 38, "Receita", "Rendimentos Inter"),
-        
+        m("Receita Google", "Google Play Net Revenue", 25, "Receita", "Receita Google Play"),
+        m("Receita Apple", "App Store Net Revenue", 33, "Receita", "Receita App Store"),
+        m("Receita Brasil", "Google Play Net Revenue", 26, "Receita", "Receita Brasil - Google"),
+        m("Receita Brasil", "App Store Net Revenue", 34, "Receita", "Receita Brasil - Apple"),
+        m("Receita USA", "Google Play Net Revenue", 28, "Receita", "Receita USA - Google"),
+        m("Receita USA", "App Store Net Revenue", 36, "Receita", "Receita USA - Apple"),
+        m("Rendimentos", "Rendimentos de Aplicações", 38, "Receita", "Rendimentos de Aplicações"),
+        m("Rendimentos", "CONTA SIMPLES", 38, "Receita", "Rendimentos CDI - Conta Simples"),
+        m("Rendimentos", "BANCO INTER", 38, "Receita", "Rendimentos - Banco Inter"),
+
         # COGS (Direct Costs)
-        # Specific
         m("Web Services Expenses", "AWS", 43, "Custo", "Amazon Web Services"),
         m("Web Services Expenses", "Cloudflare", 44, "Custo", "Cloudflare"),
         m("Web Services Expenses", "Heroku", 45, "Custo", "Heroku"),
         m("Web Services Expenses", "IAPHUB", 46, "Custo", "IAPHUB"),
         m("Web Services Expenses", "MailGun", 47, "Custo", "MailGun"),
         m("Web Services Expenses", "AWS SES", 48, "Custo", "AWS SES"),
-        # Generic
         m("Web Services Expenses", "Diversos", 43, "Custo", "Web Services - Generic"),
 
         # SG&A (Operating Expenses)
-        # Marketing
         m("Marketing & Growth Expenses", "MGA MARKETING LTDA", 56, "Despesa", "Marketing Agency"),
         m("Marketing & Growth Expenses", "Diversos", 56, "Despesa", "Marketing - Generic"),
-        
+
         # Wages
         m("Wages Expenses", "Diversos", 62, "Despesa", "Salários e Pró-labore"),
-        
+
         # Tech Support
         m("Tech Support & Services", "Adobe", 68, "Despesa", "Adobe Creative Cloud"),
         m("Tech Support & Services", "Canva", 68, "Despesa", "Canva"),
         m("Tech Support & Services", "ClickSign", 68, "Despesa", "ClickSign"),
         m("Tech Support & Services", "COMPANYHERO", 68, "Despesa", "Company Hero"),
-        m("Tech Support & Services", "Diversos", 65, "Despesa", "Tech Support - Generic"),
-        
+        m("Tech Support & Services", "Diversos", 68, "Despesa", "Tech Support - Generic"),
+
         # OTHER EXPENSES / TAXES
-        # Legal & Accounting
         m("Legal & Accounting Expenses", "BHUB.AI", 90, "Despesa", "BPO Financeiro"),
         m("Legal & Accounting Expenses", "WOLFF", 90, "Despesa", "Honorários Advocatícios"),
         m("Legal & Accounting Expenses", "Diversos", 90, "Despesa", "Legal & Accounting - Generic"),
+        m("Advisory & Prof. Services Expenses", "BIRD PRESTACAO DE SERVICOS DE PSICOLOGIA E COACHING LTDA-EPP", 90, "Despesa", "Serviços Profissionais"),
 
-        # Office
         m("Office Expenses", "GO OFFICES", 90, "Despesa", "Aluguel"),
         m("Office Expenses", "CO-SERVICES", 90, "Despesa", "Serviços de Escritório"),
         m("Office Expenses", "Diversos", 90, "Despesa", "Office Expenses - Generic"),
 
-        # Travel
         m("Travel", "American Airlines", 90, "Despesa", "Viagens"),
         m("Travel", "Diversos", 90, "Despesa", "Travel - Generic"),
 
-        # Taxes
         m("Other Taxes", "IMPOSTOS/TRIBUTOS", 90, "Despesa", "Impostos e Tributos"),
+        m("Other Taxes", "BANCO INTER", 90, "Despesa", "IOF e tarifas"),
         m("Other Taxes", "Diversos", 90, "Despesa", "Other Taxes - Generic"),
         m("Payroll Tax - Brazil", "IMPOSTOS/TRIBUTOS", 90, "Despesa", "Impostos sobre Folha"),
         m("Payroll Tax - Brazil", "Diversos", 90, "Despesa", "Payroll Tax - Generic"),

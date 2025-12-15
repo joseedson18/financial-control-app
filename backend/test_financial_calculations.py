@@ -19,11 +19,11 @@ from datetime import datetime
 import sys
 import os
 
-# Add backend to path
+# Ensure backend package is importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from logic import calculate_pnl, get_dashboard_data, get_initial_mappings, process_upload
-from models import MappingItem, PnLResponse, DashboardData
+from backend.logic import calculate_pnl, get_dashboard_data, get_initial_mappings, process_upload
+from backend.models import MappingItem, PnLResponse, DashboardData
 
 
 def create_mapping(fornecedor: str, linha_pl: str, centro_custo: str, tipo: str = "Despesa") -> MappingItem:

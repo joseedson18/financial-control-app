@@ -68,11 +68,26 @@ ws_pl['A3'] = "Categoria"
 ws_pl['B3'] = "Unidade"
 
 # Meses (últimos 12 meses + próximos 6 meses)
-data_inicio = datetime(2024, 5, 1)
+from pandas import Period  # Import ad-hoc para alinhar com dados do Extrato
+
+try:
+    extrato_min_period = Period(pd.read_csv(
+        '/home/ubuntu/upload/Extratodemovimentações-2025-ExtratoFinanceiro.csv',
+        encoding='latin-1',
+        sep=';',
+        dayfirst=True,
+    )['Data de competência'].dropna().astype(str).min(), freq='M')
+except Exception:
+    extrato_min_period = None
+
+if extrato_min_period is None or extrato_min_period is pd.NaT:
+    data_inicio = datetime(2024, 5, 1)
+else:
+    data_inicio = extrato_min_period.to_timestamp()
 meses = []
 for i in range(18):
     mes = data_inicio + relativedelta(months=i)
-    meses.append(mes.strftime("%m/%Y"))
+    meses.append(mes.strftime("%Y-%m"))
 
 for col_idx, mes in enumerate(meses, start=3):
     col_letter = get_column_letter(col_idx)
@@ -218,12 +233,20 @@ for item in estrutura_pl:
         elif item['unidade'] == 'Users':
             cell.number_format = '#,##0'
         
-        # Aplicar fórmulas (placeholder por enquanto)
+        # Aplicar fórmulas
         if item.get('formula') == 'import':
-            # Fórmula SUMIFS para importar do Extrato_Importado
-            # Será implementada na próxima etapa
-            cell.value = 0
-            cell.fill = editable_fill
+            col_letter = get_column_letter(col_idx)
+            header_ref = f"${col_letter}$3"
+            formula = (
+                "=SUMIFS("  # Soma valores do extrato\n"
+                "'Extrato_Importado'!$E:$E,"
+                "'Extrato_Importado'!$J:$J,"
+                f"{item['linha']},"
+                "'Extrato_Importado'!$H:$H,"
+                f"{header_ref})"
+            )
+            cell.value = formula
+            cell.fill = formula_fill
         elif item.get('formula') == 'calc':
             # Fórmulas de cálculo
             cell.value = 0

@@ -2,9 +2,11 @@ import logging
 import os
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import JWTError, jwt
+
+from argon2 import PasswordHasher
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from pydantic import BaseModel
 
 # Configuration
@@ -16,34 +18,45 @@ _logged_missing_secret_warning = False
 _logged_placeholder_warning = False
 
 __all__ = [
-    'Token', 'create_access_token', 'get_current_user', 'USERS_DB',
-    'verify_password', 'get_password_hash', 'ACCESS_TOKEN_EXPIRE_MINUTES'
+    "Token",
+    "create_access_token",
+    "get_current_user",
+    "USERS_DB",
+    "verify_password",
+    "get_password_hash",
+    "ACCESS_TOKEN_EXPIRE_MINUTES",
 ]
 
 # Admin Users (Hardcoded as requested)
-# Using simple SHA256 hashing for passwords
-from argon2 import PasswordHasher
-
 _password_hasher = PasswordHasher()
 
+
+def _normalize_email(email: Optional[str]) -> Optional[str]:
+    """Normalize user emails to avoid login failures due to case/whitespace."""
+    if email is None:
+        return None
+    return email.strip().lower()
+
+
 def hash_password(password: str) -> str:
-    """Hash password using Argon2 (memory hard, salt included)"""
+    """Hash password using Argon2 (memory hard, salt included)."""
     return _password_hasher.hash(password)
 
-# Precomputed Argon2 hashes for: "fxdxudu18!", "123456!", "654321!"
+
+# Precomputed Argon2 hashes for: "fxdxudu18!", "123456", "654321!"
 USERS_DB = {
     "josemercadogc18@gmail.com": {
-        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$B5enxJ+VuM4+AbCyo+Tx0w$BU5XR3VWIUUmwWbji1PoRCRn7XRvnNO62Jz9S8P5ZeQ",  # fxdxudu18!
-        "name": "Jose Mercado"
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$3uWGfZ/4lhI0IavAT+bI3w$tRHRSxRHi6UtAMfuUk05RWM5TnM5cUevADr+oL7dnK4",  # fxdxudu18!
+        "name": "Jose Mercado",
     },
     "matheuscastrocorrea@gmail.com": {
-        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$Updi0pwxbzu026Jm3YAnbA$q/WhS5d2YAqya6QVkdxnpMemG6IcyMCaqtEItiBNHzM",  # 123456!
-        "name": "Matheus Castro"
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$75Tzlvj9i9ypd73J9yPu+g$dsnh1u7Sm34ye85rf+bEUVrhulMSKnWLKPJJ2RuaFgU",  # 123456
+        "name": "Matheus Castro",
     },
     "jc@juicyscore.ai": {
-        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$FE7QvKuHYvPz4aHgY5DDlg$J4tQyPsOfHTEJF3R60hjhJ6nyVbqv8NO6dsl4M/Nbpo",  # 654321!
-        "name": "JC"
-    }
+        "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$y3i+qbk+M77A+aomLS9h5g$hegYbeK03ffU9He00wXpk44cug1tyCkaGcepXKQ9Nvw",  # 654321!
+        "name": "JC",
+    },
 }
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
@@ -75,19 +88,22 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 def verify_password(plain_password, hashed_password):
-    """
-    Verifies a password against an Argon2 hash.
-    """
+    """Verify a password against an Argon2 hash."""
     try:
         return _password_hasher.verify(hashed_password, plain_password)
     except Exception:
         return False
-    """
-    Returns an Argon2 hash for the given password.
-    """
 
 def get_password_hash(password):
     return hash_password(password)
+
+
+def get_user(email: Optional[str]):
+    """Return a user dict using normalized email keys."""
+    normalized = _normalize_email(email)
+    if normalized is None:
+        return None
+    return USERS_DB.get(normalized)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     secret_key = _get_secret_key()
@@ -112,11 +128,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_data = TokenData(username=_normalize_email(username))
     except JWTError:
         raise credentials_exception
-    
-    user = USERS_DB.get(token_data.username)
+
+    user = get_user(token_data.username)
     if user is None:
         raise credentials_exception
     return user
