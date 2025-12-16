@@ -1,0 +1,9 @@
+name: financial-control-app
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - pytest
+      - flake8
